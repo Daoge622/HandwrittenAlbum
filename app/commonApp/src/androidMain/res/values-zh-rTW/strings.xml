@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Manifest/widget/XML-referenced strings. UI strings live in commonMain/composeResources. -->
 <resources>
-    <string name="app_name">ReFra</string>
+    <string name="app_name">手写相册</string>
     <string name="app_name_gallery">相簿</string>
     <string name="location_cd">媒體位置</string>
     <string name="set_wallpaper">桌布</string>

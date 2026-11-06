@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Manifest/widget/XML-referenced strings. UI strings live in commonMain/composeResources. -->
 <resources>
-    <string name="app_name">ReFra</string>
+    <string name="app_name">Handwritten Album</string>
     <string name="app_name_gallery">Gallery</string>
     <string name="location_cd">Media Location</string>
     <string name="set_wallpaper">Wallpaper</string>

@@ -43,7 +43,7 @@ apkVersioning {
     flavorVersionCodes.set(abiVersionCodes)
     versionCodeMultiplier.set(10)
     outputFileName.set("{appName}-{versionName}-{versionCode}{suffix}-{ml}-{abi}-{buildType}")
-    variables.put("appName", "ReFra")
+    variables.put("appName", "HandwrittenAlbum")
     val offlineSuffix = if (isOffline) "-offline" else ""
     variables.put("suffix", offlineSuffix)
 }
@@ -152,7 +152,7 @@ android {
     ndkVersion = pinnedNdkVersion
 
     defaultConfig {
-        applicationId = "com.dot.gallery"
+        applicationId = "io.github.daoge622.handwritten"
         minSdk = 29
         targetSdk = 37
         versionCode = 60001
@@ -215,7 +215,7 @@ android {
         getByName("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["appProvider"] = "com.dot.gallery.debug.media_provider"
+            manifestPlaceholders["appProvider"] = "io.github.daoge622.handwritten.debug.media_provider"
             buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "$allowAllFilesAccess")
             buildConfigField("Boolean", "OFFLINE_MODE", "$isOffline")
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
@@ -228,14 +228,14 @@ android {
             buildConfigField(
                 "String",
                 "CONTENT_AUTHORITY",
-                "\"com.dot.gallery.debug.media_provider\""
+                "\"io.github.daoge622.handwritten.debug.media_provider\""
             )
             buildConfigField("Boolean", "ENABLE_INDEXING", "false")
             buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "true")
         }
         getByName("release") {
             manifestPlaceholders += mapOf(
-                "appProvider" to "com.dot.gallery.media_provider"
+                "appProvider" to "io.github.daoge622.handwritten.media_provider"
             )
             isMinifyEnabled = true
             isShrinkResources = true
@@ -255,7 +255,7 @@ android {
             buildConfigField("Boolean", "WEBDAV_ENABLED", "$includeWebdav")
             buildConfigField("Boolean", "SMB_ENABLED", "$includeSmb")
             buildConfigField("Boolean", "NFS_ENABLED", "$includeNfs")
-            buildConfigField("String", "CONTENT_AUTHORITY", "\"com.dot.gallery.media_provider\"")
+            buildConfigField("String", "CONTENT_AUTHORITY", "\"io.github.daoge622.handwritten.media_provider\"")
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
             buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "true")
         }
@@ -266,11 +266,11 @@ android {
             isShrinkResources = false
             applicationIdSuffix = ".staging"
             versionNameSuffix = "-staging"
-            manifestPlaceholders["appProvider"] = "com.dot.staging.debug.media_provider"
+            manifestPlaceholders["appProvider"] = "io.github.daoge622.handwritten.staging.media_provider"
             buildConfigField(
                 "String",
                 "CONTENT_AUTHORITY",
-                "\"com.dot.staging.debug.media_provider\""
+                "\"io.github.daoge622.handwritten.staging.media_provider\""
             )
             buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "$allowAllFilesAccess")
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
@@ -289,7 +289,7 @@ android {
             matchingFallbacks += "release"
             applicationIdSuffix = ".gplay"
             ndk.debugSymbolLevel = "FULL"
-            manifestPlaceholders["appProvider"] = "com.dot.gallery.gplay.media_provider"
+            manifestPlaceholders["appProvider"] = "io.github.daoge622.handwritten.gplay.media_provider"
             buildConfigField("Boolean", "ALLOW_ALL_FILES_ACCESS", "false")
             buildConfigField("Boolean", "OFFLINE_MODE", "$isOffline")
             buildConfigField("Boolean", "MAPS_ENABLED", "$includeMaps")
@@ -299,7 +299,7 @@ android {
             buildConfigField("Boolean", "WEBDAV_ENABLED", "$includeWebdav")
             buildConfigField("Boolean", "SMB_ENABLED", "$includeSmb")
             buildConfigField("Boolean", "NFS_ENABLED", "$includeNfs")
-            buildConfigField("String", "CONTENT_AUTHORITY", "\"com.dot.gallery.gplay.media_provider\"")
+            buildConfigField("String", "CONTENT_AUTHORITY", "\"io.github.daoge622.handwritten.gplay.media_provider\"")
             buildConfigField("Boolean", "ENABLE_INDEXING", "true")
             buildConfigField("Boolean", "ALLOW_INSECURE_TLS", "false")
         }
