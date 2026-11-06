@@ -19,6 +19,8 @@ defaults:
 jobs:
   debug_apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v6
@@ -52,3 +54,14 @@ jobs:
             app/androidApp/build/outputs/apk-renamed/**/*.apk
             app/androidApp/build/outputs/apk/**/*.apk
           if-no-files-found: error
+      - name: Publish rolling test release
+        # 推送到 main 时，自动把安装包发布到固定地址的“最新测试版”，电脑关机也不影响
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          APK=$(find app/androidApp/build/outputs/apk-renamed -name "*.apk" | head -1)
+          cp "$APK" HandwrittenAlbum-test-arm64.apk
+          gh release delete test-latest -y --cleanup-tag || true
+          gh release create test-latest HandwrittenAlbum-test-arm64.apk --prerelease --target "${{ github.sha }}"             --title "最新测试版 · $(date -u +%m-%d) · ${GITHUB_SHA::7}"             --notes "每次更新代码后自动生成。最近一次改动：$HEAD_MSG"
