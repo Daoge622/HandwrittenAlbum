@@ -1,6 +1,6 @@
 name: 手写相册 CI
 
-# 每次推送到 main 自动编译一个 arm64 调试版 APK（离线版、不含内置模型），
+# 每次推送到 main 自动编译一个 arm64 测试版 APK（开启 R8 优化的 release，离线版、不含内置模型），
 # 编译完成后在 Actions 页面的 Artifacts 里下载安装。
 on:
   push:
@@ -42,11 +42,11 @@ jobs:
         uses: ./.github/actions/build-native-libs
         with:
           arch: Arm64-v8a
-      - name: Build debug APK
-        run: ./gradlew --build-cache :app:androidApp:assembleArm64-v8aNoMLDebug
+      - name: Build optimized test APK
+        run: ./gradlew --build-cache :app:androidApp:assembleArm64-v8aNoMLRelease
       - uses: actions/upload-artifact@v5
         with:
-          name: HandwrittenAlbum-debug-arm64
+          name: HandwrittenAlbum-test-arm64
           path: |
             app/androidApp/build/outputs/apk-renamed/**/*.apk
             app/androidApp/build/outputs/apk/**/*.apk

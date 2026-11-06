@@ -19,7 +19,8 @@ manifestConfig {
                 "android.permission.ACCESS_WIFI_STATE",
                 "android.permission.ACCESS_NETWORK_STATE",
                 "android.permission.CHANGE_WIFI_MULTICAST_STATE",
-                "android.permission.ACCESS_FINE_LOCATION"
+                "android.permission.ACCESS_FINE_LOCATION",
+                "android.permission.ACCESS_LOCAL_NETWORK"
             )
         )
     }
@@ -193,10 +194,19 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("release_key.jks")
-            storePassword = System.getenv("SIGNING_STORE_PASSWORD")
-            keyAlias = System.getenv("SIGNING_KEY_ALIAS")
-            keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            // 手写相册: without the real release key (local builds, test CI), fall back to the
+            // public test keystore so optimized (R8) builds can still be installed for testing.
+            if (System.getenv("SIGNING_STORE_PASSWORD").isNullOrEmpty()) {
+                storeFile = rootProject.file(".github/debug.keystore")
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            } else {
+                storeFile = file("release_key.jks")
+                storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            }
         }
     }
 
