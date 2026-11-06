@@ -2,9 +2,9 @@
 
 native_sha256() {
     if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum "$1" | awk '{print $1}'
+        sha256sum < "$1" | awk '{print $1}'
     else
-        shasum -a 256 "$1" | awk '{print $1}'
+        shasum -a 256 < "$1" | awk '{print $1}'
     fi
 }
 
@@ -79,7 +79,10 @@ native_prepare_source() {
             echo "ERROR: SHA-256 mismatch for $key: expected $expected_sha, got $actual_sha" >&2
             exit 1
         fi
-        tar -xzf "$archive" --strip-components=1 -C "$destination"
+        # 手写相册: GNU tar treats "D:\..." as a remote host on Windows; force local paths there.
+        local tar_local=""
+        if tar --help 2>/dev/null | grep -q -- "--force-local"; then tar_local="--force-local"; fi
+        tar $tar_local -xzf "$archive" --strip-components=1 -C "$destination"
     fi
 
     if [ ! -e "$destination/$sentinel" ]; then

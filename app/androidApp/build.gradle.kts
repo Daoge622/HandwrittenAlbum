@@ -82,13 +82,16 @@ val nativeSourceOverrides = listOf(
     "LIBTIFF_SOURCE_DIR",
     "JP2FORANDROID_SOURCE_DIR"
 )
+// 手写相册: on Windows, CreateProcess resolves plain "bash" to System32ash.exe (WSL) before PATH.
+// Pass -PnativeBash=<path to Git bash.exe> to use Git Bash instead.
+val nativeBash: String = (project.findProperty("nativeBash") as String?) ?: "bash"
 val nativeTasksByAbi = nativeAbiTaskSuffixes.mapValues { (abi, suffix) ->
     nativeStacks.map { (stack, scriptName, outputName) ->
         val script = rootProject.file("scripts/native/$scriptName")
         tasks.register<Exec>("build${stack}Native$suffix") {
             group = "build"
             workingDir(rootProject.projectDir)
-            commandLine("bash", script.absolutePath, abi)
+            commandLine(nativeBash, script.absolutePath, abi)
             environment("NATIVE_OFFLINE", "0")
             environment("NATIVE_SOURCE_ARCHIVES_DIR", "")
             environment("NATIVE_DOWNLOAD_CACHE", nativeDownloadCache.absolutePath)

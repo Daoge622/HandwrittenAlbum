@@ -1,0 +1,53 @@
+name: 手写相册 CI
+
+# 每次推送到 main 自动编译一个 arm64 调试版 APK（离线版、不含内置模型），
+# 编译完成后在 Actions 页面的 Artifacts 里下载安装。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: handwritten-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  debug_apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/powershell || true
+      - name: Fix permissions
+        run: chmod +x ./gradlew scripts/native/*.sh
+      - name: Tune Gradle for CI
+        run: |
+          echo "org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8" >> gradle.properties
+          echo "org.gradle.workers.max=2" >> gradle.properties
+      - name: Use the shared debug keystore
+        # 固定的调试签名，这样每次的测试版可以直接覆盖安装，不用先卸载。
+        # 这是公开的调试密钥（密码 android），只用于测试版，不用于正式发布。
+        run: mkdir -p ~/.android && cp .github/debug.keystore ~/.android/debug.keystore
+      - name: Build native codecs
+        uses: ./.github/actions/build-native-libs
+        with:
+          arch: Arm64-v8a
+      - name: Build debug APK
+        run: ./gradlew --build-cache :app:androidApp:assembleArm64-v8aNoMLDebug
+      - uses: actions/upload-artifact@v5
+        with:
+          name: HandwrittenAlbum-debug-arm64
+          path: |
+            app/androidApp/build/outputs/apk-renamed/**/*.apk
+            app/androidApp/build/outputs/apk/**/*.apk
+          if-no-files-found: error
