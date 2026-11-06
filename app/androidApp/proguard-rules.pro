@@ -62,3 +62,6 @@
 -dontwarn org.ietf.jgss.GSSManager
 -dontwarn org.ietf.jgss.GSSName
 -dontwarn org.ietf.jgss.Oid
+# 手写相册: @Parcelize is a compile-time annotation from the parcelize plugin; it is not on the
+# runtime classpath of every module, so R8 reports it missing. Safe to ignore.
+-dontwarn kotlinx.parcelize.**
