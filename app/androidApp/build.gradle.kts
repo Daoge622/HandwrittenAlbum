@@ -17,7 +17,8 @@ manifestConfig {
             listOf(
                 "android.permission.INTERNET",
                 "android.permission.ACCESS_WIFI_STATE",
-                "android.permission.ACCESS_NETWORK_STATE",
+                // 手写相册: ACCESS_NETWORK_STATE is kept — WorkManager constraint checks call
+                // ConnectivityManager and crash without it. It only reads connectivity, it cannot go online.
                 "android.permission.CHANGE_WIFI_MULTICAST_STATE",
                 "android.permission.ACCESS_FINE_LOCATION",
                 "android.permission.ACCESS_LOCAL_NETWORK"
