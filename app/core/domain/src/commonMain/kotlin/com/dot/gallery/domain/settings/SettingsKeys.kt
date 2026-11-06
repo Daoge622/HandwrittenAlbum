@@ -25,7 +25,8 @@ object SettingsKeys {
     val amoledMode = PrefKey.bool("amoled_mode", default = false)
 
     /** Mirrors `com.dot.gallery.ui.theme.THEME_SEED_SYSTEM` — domain cannot depend on ui. */
-    val themeColorSeed = PrefKey.string("theme_color_seed", default = "system")
+    // 手写相册：默认主题为「素笺」（THEME_SEED_SUJIAN）
+    val themeColorSeed = PrefKey.string("theme_color_seed", default = "sujian")
     val useSystemFont = PrefKey.bool("use_system_font", default = false)
 
     // Appearance / visual effects

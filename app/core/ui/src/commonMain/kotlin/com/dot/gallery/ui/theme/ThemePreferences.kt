@@ -14,7 +14,7 @@ data class ThemePreferences(
     val forceTheme: Boolean = false,
     val isDarkMode: Boolean = false,
     val amoledMode: Boolean = false,
-    val themeColorSeed: String = THEME_SEED_SYSTEM,
+    val themeColorSeed: String = THEME_SEED_SUJIAN,
     val useSystemFont: Boolean = false,
 )
 

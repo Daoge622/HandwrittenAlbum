@@ -55,6 +55,10 @@ fun GalleryTheme(
     }
     val colorScheme = remember(dynamicScheme, forcedDarkTheme, isAmoledMode, themeColorSeed) {
         when {
+            // 手写相册：默认「素笺」，深色即「墨夜」；不跟随系统动态取色
+            themeColorSeed == THEME_SEED_SUJIAN ->
+                sujianColorScheme(forcedDarkTheme, isAmoledMode)
+
             themeColorSeed == THEME_SEED_NEUTRAL ->
                 neutralColorScheme(forcedDarkTheme, isAmoledMode)
 
@@ -73,7 +77,11 @@ fun GalleryTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         shapes = Shapes,
-        typography = if (useSystemFont) SystemTypography else Typography
+        typography = when {
+            themeColorSeed == THEME_SEED_SUJIAN -> EditorialTypography
+            useSystemFont -> SystemTypography
+            else -> Typography
+        }
     ) {
         CompositionLocalProvider(
             LocalGalleryDarkTheme provides forcedDarkTheme,
