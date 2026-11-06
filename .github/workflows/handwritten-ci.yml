@@ -5,6 +5,7 @@ name: 手写相册 CI
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 concurrency:
