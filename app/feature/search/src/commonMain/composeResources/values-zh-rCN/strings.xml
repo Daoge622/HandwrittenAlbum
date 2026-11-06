@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ai_models_not_installed">尚未安装 AI 模型。请前往“设置 > 智能功能”下载。</string>
+    <string name="night_mode">夜景</string>
+    <string name="panoramas">全景照片</string>
+    <string name="photospheres">球形全景</string>
+    <string name="long_exposures">长曝光</string>
+    <string name="motion_photos">动态照片</string>
+    <string name="group_type_bursts">连拍</string>
+    <string name="group_type_raw_jpg">RAW + JPG</string>
+    <string name="group_type_edits">编辑版本</string>
+    <string name="visual_search_failed">视觉搜索无法处理此图片</string>
+    <string name="search_failed">无法完成搜索</string>
+</resources>

@@ -2,7 +2,7 @@
 <!-- Manifest/widget/XML-referenced strings. UI strings live in commonMain/composeResources. -->
 <resources>
     <string name="app_name">手写相册</string>
-    <string name="app_name_gallery">图库</string>
+    <string name="app_name_gallery">手写相册</string>
     <string name="location_cd">媒体位置</string>
     <string name="set_wallpaper">壁纸</string>
     <string name="widget_single_label">单张照片</string>

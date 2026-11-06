@@ -8,11 +8,11 @@
     <string name="effect_borders">边框</string>
     <string name="effect_edges">线稿</string>
     <string name="effect_posterize">色调分离</string>
-    <string name="filter_style_airy">Airy</string>
-    <string name="filter_style_ember">Ember</string>
-    <string name="filter_style_luminous">Luminous</string>
-    <string name="filter_style_radiant">Radiant</string>
-    <string name="filter_style_vivid">Vivid</string>
+    <string name="filter_style_airy">轻盈</string>
+    <string name="filter_style_ember">余烬</string>
+    <string name="filter_style_luminous">柔光</string>
+    <string name="filter_style_radiant">明亮</string>
+    <string name="filter_style_vivid">鲜艳</string>
     <string name="filters">滤镜</string>
     <string name="markup">标记</string>
     <string name="preset_dynamic">动态</string>
@@ -23,7 +23,7 @@
     <string name="raw_tab_tone">色调</string>
     <string name="raw_tab_white_balance">白平衡</string>
     <string name="tool_black_point">黑场</string>
-    <string name="tool_black_white">黑白</string>
+    <string name="tool_black_white">黑 &amp; 白</string>
     <string name="tool_blue_tone">蓝色调</string>
     <string name="tool_brightness">亮度</string>
     <string name="tool_contrast">对比度</string>
@@ -41,7 +41,7 @@
     <string name="type_erase">橡皮擦</string>
     <string name="type_highlighter">萤光笔</string>
     <string name="type_marker">记号笔</string>
-    <string name="type_mosaic">马赛克</string>
+    <string name="type_mosaic">拼贴</string>
     <string name="type_pan">平移</string>
     <string name="type_stylus">触控笔</string>
     <string name="type_text">文本</string>
@@ -55,4 +55,13 @@
     <string name="editor_brush_size">大小</string>
     <string name="editor_brush_strength">强度</string>
     <string name="editor_blur_faces">模糊面孔</string>
+    <string name="raw_export_jpeg">JPEG</string>
+    <string name="raw_export_png">PNG</string>
+    <string name="raw_export_tiff8">TIFF（8位）</string>
+    <string name="raw_export_tiff16">TIFF（16位）</string>
+    <string name="raw_export_choose_format">保存已处理副本</string>
+    <string name="raw_export_choose_format_subtitle">选择已处理RAW文件的格式</string>
+    <string name="raw_export_tiff_unavailable">TIFF 可保留完整位深，但无法包含裁剪、滤镜或标注。请移除这些编辑后再导出 TIFF。</string>
+    <string name="cutout_no_object">长按下未检测到对象</string>
+    <string name="cutout_init_failed">裁剪引擎初始化失败</string>
 </resources>

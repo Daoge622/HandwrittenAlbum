@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="timeline_controls">筛选按钮</string>
+    <string name="order_by">排序依据</string>
+    <string name="capture_time">拍摄时间</string>
+    <string name="capture_time_summary">照片或视频中记录的日期，不存在时使用修改时间</string>
+    <string name="sort_by_date_modified">修改日期</string>
+    <string name="modified_time_summary">文件最后修改的时间</string>
+    <string name="sort_descending">降序</string>
+    <string name="sort_ascending">升序</string>
+    <string name="capture_time_indexing">正在检查拍摄日期：%1$d%%</string>
+    <string name="filter_type">类型</string>
+    <string name="filter_all">全部</string>
+    <string name="photos">照片</string>
+    <string name="videos">视频</string>
+    <string name="filter_status">状态</string>
+    <string name="favorites">收藏</string>
+    <string name="filter_time">时间</string>
+    <string name="filter_source">来源</string>
+    <string name="filter_reset">重置</string>
+    <string name="filter_apply">应用</string>
+    <string name="sort_and_filter">排序和筛选</string>
+    <string name="story_this_year">今年</string>
+    <string name="story_highlight_count">%1$d 项精选，来自 %2$d 项内容</string>
+    <plurals name="story_years_ago"><item quantity="one">%1$d 年前</item><item quantity="other">%1$d 年前</item></plurals>
+    <plurals name="story_item_count"><item quantity="one">%1$d 项</item><item quantity="other">%1$d 项</item></plurals>
+</resources>

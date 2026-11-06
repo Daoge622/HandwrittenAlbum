@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">设置</string>
+    <string name="locations">位置</string>
+    <string name="cloud_people">联系人</string>
+    <string name="categories">分类</string>
+    <string name="category_media_count">%1$d 项</string>
+    <string name="categorise_your_media">为媒体分类</string>
+    <string name="library_customize_title">自定义快捷方式</string>
+    <string name="library_customize_hint">拖动瓷砖以重新排序，拖动侧边手柄调整大小，轻点 × 删除。</string>
+    <string name="library_edit_done">完成</string>
+    <string name="library_customize">自定义快捷方式</string>
+    <string name="library_shortcut_hide">隐藏快捷方式</string>
+    <string name="library_shortcut_size_half">半宽</string>
+    <string name="library_shortcut_size_full">全宽</string>
+    <string name="library_section_hidden">已隐藏</string>
+    <string name="library_shortcut_show">显示快捷方式</string>
+    <string name="library_section_locations_empty">暂无位置信息</string>
+    <string name="library_section_people_unavailable">暂无人物</string>
+    <string name="library_section_categories_unavailable">智能分类已关闭</string>
+    <string name="library_sections_title">分区</string>
+    <string name="trash">回收站</string>
+    <string name="favorites">收藏</string>
+    <string name="vault">私密相册</string>
+    <string name="ignored">已隐藏</string>
+    <string name="security_private_folder">私密文件夹</string>
+    <string name="cloud_archive">归档</string>
+    <string name="cloud_shared_links">分享链接</string>
+    <string name="cloud_backup_and_sync">备份 &amp; 同步</string>
+    <string name="cloud_accounts">云服务账号</string>
+    <string name="favorites_group_by_date">按日期分组</string>
+    <string name="favorites_info_title">你的收藏</string>
+    <string name="favorites_info_summary">长按照片或视频将其选中，再轻点心形图标加入收藏。这里只是快捷入口，不会将内容从原相册移除。</string>
+    <string name="unknown_location">未知位置</string>
+</resources>

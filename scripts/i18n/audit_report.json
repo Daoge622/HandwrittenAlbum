@@ -1,0 +1,998 @@
+{
+  "modules": [
+    {
+      "source": "app/commonApp/src/androidMain/res/values/strings.xml",
+      "target": "app/commonApp/src/androidMain/res/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 9,
+      "source_count": 9,
+      "translated_count": 9
+    },
+    {
+      "source": "app/commonApp/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 2299,
+      "source_count": 2291,
+      "translated_count": 2291
+    },
+    {
+      "source": "app/core/ui/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/core/ui/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 122,
+      "source_count": 122,
+      "translated_count": 122
+    },
+    {
+      "source": "app/feature/albums/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/albums/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 67,
+      "source_count": 67,
+      "translated_count": 67
+    },
+    {
+      "source": "app/feature/classifier/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/classifier/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 88,
+      "source_count": 88,
+      "translated_count": 88
+    },
+    {
+      "source": "app/feature/editor/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/editor/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 64,
+      "source_count": 64,
+      "translated_count": 64
+    },
+    {
+      "source": "app/feature/exif/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/exif/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 59,
+      "source_count": 59,
+      "translated_count": 59
+    },
+    {
+      "source": "app/feature/help/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/help/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 1473,
+      "source_count": 1473,
+      "translated_count": 1473
+    },
+    {
+      "source": "app/feature/ignored/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/ignored/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 70,
+      "source_count": 70,
+      "translated_count": 70
+    },
+    {
+      "source": "app/feature/library/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/library/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 32,
+      "source_count": 32,
+      "translated_count": 32
+    },
+    {
+      "source": "app/feature/picker/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/picker/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 19,
+      "source_count": 19,
+      "translated_count": 19
+    },
+    {
+      "source": "app/feature/search/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/search/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 11,
+      "source_count": 11,
+      "translated_count": 11
+    },
+    {
+      "source": "app/feature/settings/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/settings/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 626,
+      "source_count": 625,
+      "translated_count": 625
+    },
+    {
+      "source": "app/feature/setup/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/setup/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 97,
+      "source_count": 97,
+      "translated_count": 97
+    },
+    {
+      "source": "app/feature/timeline/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/timeline/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 26,
+      "source_count": 24,
+      "translated_count": 24
+    },
+    {
+      "source": "app/feature/vault/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/vault/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 93,
+      "source_count": 93,
+      "translated_count": 93
+    },
+    {
+      "source": "app/feature/viewer/src/commonMain/composeResources/values/strings.xml",
+      "target": "app/feature/viewer/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "missing_keys": [],
+      "missing_items": [],
+      "extra_keys": [],
+      "checked_leaves": 124,
+      "source_count": 123,
+      "translated_count": 123
+    }
+  ],
+  "errors": [
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "ai_models_group_face_detect_desc",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'",
+        "\\\"",
+        "\\\""
+      ],
+      "translation": [
+        "\\\"",
+        "\\\""
+      ]
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "backup_empty",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "backup_export_password_notice",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "backup_export_vault_notice",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_free_space_auto_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_help_nfs",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_media_trash_confirm_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_offline_force_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_offline_wifi_only_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_person_blur_everywhere_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_sync_albums_desc",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "date_format_info_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "dev_crash_banner_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "disclaimer_classification",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "edit_load_failed",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "edit_load_failed_restore_title",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "edit_override_failed",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "editor_save_copy_subtitle",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "favorites_info_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "follow_system_theme_description",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "help_explore_whats_new",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "help_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "help_whats_new",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "help_whats_new_in_version",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "long_press_cutout_description",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "motion_photo_export_failed",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "permission_manage_files_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "raw_export_tiff_unavailable",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "rotate_failed",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "set_wallpaper_error",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "setup_ai_features_title",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "setup_reason_manage_files",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "setup_tips_body",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "setup_tips_subtitle",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "show_selection_titles",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "smart_features_index_on_device_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "use_system_font_description",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "use_system_font_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "vault_hide_no_local_items",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "video_description_local_only",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    }
+  ],
+  "literal_punctuation_differences": [
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "ai_models_group_face_detect_desc",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'",
+        "\\\"",
+        "\\\""
+      ],
+      "translation": [
+        "\\\"",
+        "\\\""
+      ]
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "backup_empty",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "backup_export_password_notice",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "backup_export_vault_notice",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_free_space_auto_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_help_nfs",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_media_trash_confirm_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_offline_force_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_offline_wifi_only_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_person_blur_everywhere_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "cloud_sync_albums_desc",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "date_format_info_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "dev_crash_banner_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "disclaimer_classification",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "edit_load_failed",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "edit_load_failed_restore_title",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "edit_override_failed",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "editor_save_copy_subtitle",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "favorites_info_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "follow_system_theme_description",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "help_explore_whats_new",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "help_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "help_whats_new",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "help_whats_new_in_version",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "long_press_cutout_description",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "motion_photo_export_failed",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "permission_manage_files_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "raw_export_tiff_unavailable",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "rotate_failed",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "set_wallpaper_error",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "setup_ai_features_title",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "setup_reason_manage_files",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "setup_tips_body",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "setup_tips_subtitle",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "show_selection_titles",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "smart_features_index_on_device_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "use_system_font_description",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "use_system_font_summary",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "vault_hide_no_local_items",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    },
+    {
+      "path": "app/commonApp/src/commonMain/composeResources/values-zh-rCN/strings.xml",
+      "key": "video_description_local_only",
+      "item": "text",
+      "kind": "escapes",
+      "source": [
+        "\\'"
+      ],
+      "translation": []
+    }
+  ],
+  "totals": {
+    "modules": 17,
+    "missing_keys": 0,
+    "missing_items": 0,
+    "checked_leaves": 5279,
+    "errors": 40
+  },
+  "policy": {
+    "allow_grammar_apostrophes": false
+  }
+}
