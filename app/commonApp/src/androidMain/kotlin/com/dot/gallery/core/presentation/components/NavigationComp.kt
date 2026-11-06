@@ -340,7 +340,12 @@ fun NavigationComp(
             composable(
                 route = Screen.TimelineScreen()
             ) {
-                TimelineScreen(
+                // 手写相册：首页换成「今日」画报；原时间线保留在下方代码里，后续并入「相册」页
+                com.dot.gallery.app.presentation.today.TodayScreen(
+                    paddingValues = paddingValues,
+                    mediaState = timelineState(),
+                )
+                if (false) TimelineScreen(
                     paddingValues = paddingValues,
                     isScrolling = isScrolling,
                     sharedTransitionScope = sharedTransitionScope,
