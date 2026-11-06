@@ -5,6 +5,16 @@
 
 package com.dot.gallery.data
 
+import com.dot.gallery.data.entity.InkDrawingEntity
+import com.dot.gallery.data.entity.JournalBlockEntity
+import com.dot.gallery.data.entity.JournalEntryEntity
+import com.dot.gallery.data.entity.MediaIdentityEntity
+import com.dot.gallery.data.entity.MediaTagEntity
+import com.dot.gallery.data.entity.PhotoNoteEntity
+import com.dot.gallery.data.entity.TagEntity
+import com.dot.gallery.data.dao.JournalDao
+import com.dot.gallery.data.dao.PhotoNoteDao
+import com.dot.gallery.data.dao.TagDao
 import androidx.room3.AutoMigration
 import androidx.room3.ConstructedBy
 import androidx.room3.Database
@@ -141,9 +151,17 @@ import com.dot.gallery.data.Converters
         MediaFeatureStateEntity::class,
         MediaCaptureTimeEntity::class,
         CloudTagEntity::class,
-        CloudMediaTagEntity::class
+        CloudMediaTagEntity::class,
+        // 手写相册（v54）
+        MediaIdentityEntity::class,
+        TagEntity::class,
+        MediaTagEntity::class,
+        PhotoNoteEntity::class,
+        JournalEntryEntity::class,
+        JournalBlockEntity::class,
+        InkDrawingEntity::class
     ],
-    version = 53,
+    version = 54,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -201,6 +219,7 @@ import com.dot.gallery.data.Converters
         AutoMigration(from = 50, to = 51), // face_links (face-scoped include/exclude assertions)
         AutoMigration(from = 51, to = 52), // face_suppressions (deleted-person face bans, #1262)
         AutoMigration(from = 52, to = 53), // people.birthDate (on-device person birthday)
+        AutoMigration(from = 53, to = 54), // 手写相册：标签、光注、随笔、手写笔迹、照片身份指纹
     ]
 )
 @ColumnTypeConverters(Converters::class, CloudConverters::class, SmartScanConverters::class)
@@ -210,6 +229,13 @@ abstract class InternalDatabase : RoomDatabase() {
     class RemoveIconEmojiMigration : AutoMigrationSpec
 
     abstract fun getPinnedDao(): PinnedDao
+
+    // 手写相册
+    abstract fun getTagDao(): TagDao
+
+    abstract fun getPhotoNoteDao(): PhotoNoteDao
+
+    abstract fun getJournalDao(): JournalDao
 
     abstract fun getBlacklistDao(): BlacklistDao
 
