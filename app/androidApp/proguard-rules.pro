@@ -65,3 +65,11 @@
 # 手写相册: @Parcelize is a compile-time annotation from the parcelize plugin; it is not on the
 # runtime classpath of every module, so R8 reports it missing. Safe to ignore.
 -dontwarn kotlinx.parcelize.**
+
+# 手写相册: Room (2.x, used by WorkManager) instantiates generated *_Impl databases by reflection.
+# Without these rules R8 strips WorkDatabase_Impl and the app crashes in Application.onCreate
+# ("Failed to create an instance of class androidx.work.impl.WorkDatabase").
+-keep class androidx.work.impl.WorkDatabase_Impl { <init>(); }
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
+-keep class * extends androidx.room3.RoomDatabase { <init>(); }
+-keepnames class androidx.work.impl.WorkDatabase
