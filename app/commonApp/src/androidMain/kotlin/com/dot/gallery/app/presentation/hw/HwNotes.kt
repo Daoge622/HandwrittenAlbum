@@ -7,7 +7,6 @@ package com.dot.gallery.app.presentation.hw
 
 import android.content.Context
 import android.graphics.BitmapFactory
-import androidx.exifinterface.media.ExifInterface
 import com.dot.gallery.data.InternalDatabase
 import com.dot.gallery.data.entity.MediaIdentityEntity
 import com.dot.gallery.data.entity.PhotoNoteEntity
@@ -95,7 +94,8 @@ sealed interface WriteResult {
 object HwXmpWriter {
     private const val NS = "https://github.com/Daoge622/HandwrittenAlbum/ns/1.0/"
 
-    fun supports(mime: String) = mime == "image/jpeg" || mime == "image/png" || mime == "image/webp"
+    // 目前只写 JPEG（手机照片的主流格式；HEIC 暂不支持写入）。PNG/WebP 后续单独实现。
+    fun supports(mime: String) = mime == "image/jpeg"
 
     private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
@@ -136,35 +136,35 @@ object HwXmpWriter {
         val uri = m.getUri()
         val cr = context.contentResolver
         val fields = parseFields(note.fieldsJson)
-        // 1. 写前备份
+        // 1. 读入原图并备份
+        val original = runCatching { cr.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
+            ?: return@withContext WriteResult.Failed("读取原图失败")
         val dir = File(context.filesDir, "hw_backups").apply { mkdirs() }
         dir.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 7L * 24 * 3600 * 1000 }?.forEach { it.delete() }
-        val backup = File(dir, "${m.id}_${System.currentTimeMillis()}.bak")
-        val before = runCatching {
-            cr.openInputStream(uri)?.use { input -> backup.outputStream().use { input.copyTo(it) } }
-            BitmapFactory.Options().apply { inJustDecodeBounds = true }.also { o -> cr.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, o) } }
-        }.getOrElse { return@withContext WriteResult.Failed("读取原图失败：${it.message}") }
-        // 2. 合并写入
+        val backup = File(dir, "${m.id}_${System.currentTimeMillis()}.bak").apply { writeBytes(original) }
+        // 2. 合并 XMP，生成新文件内容（只替换 XMP 段，其余字节不动）
+        val xmp = merge(JpegXmp.read(original), note, fields)
+        val updated = JpegXmp.write(original, xmp)
+            ?: return@withContext WriteResult.Failed("这张照片的结构无法安全写入，未做任何修改")
+        // 3. 写回
         try {
-            cr.openFileDescriptor(uri, "rw")?.use { pfd ->
-                ExifInterface(pfd.fileDescriptor).apply {
-                    setAttribute(ExifInterface.TAG_XMP, merge(getAttribute(ExifInterface.TAG_XMP), note, fields))
-                    setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, note.text)
-                    saveAttributes()
-                }
-            } ?: return@withContext WriteResult.Failed("无法打开照片")
+            cr.openOutputStream(uri, "wt")?.use { it.write(updated) } ?: return@withContext WriteResult.Failed("无法打开照片")
         } catch (e: SecurityException) {
             backup.delete()
             return@withContext WriteResult.NeedsPermission(e)
         } catch (e: Exception) {
             restore(context, uri, backup)
-            return@withContext WriteResult.Failed("写入失败：${e.message}")
+            return@withContext WriteResult.Failed("写入失败，已还原原图")
         }
-        // 3. 写后校验
+        // 4. 写后校验：XMP 里有我们的 UUID；照片能解码且尺寸不变；文件尾（HDR 增益图、实况视频）逐字节一致
         val ok = runCatching {
-            val xmp = cr.openInputStream(uri)?.use { ExifInterface(it).getAttribute(ExifInterface.TAG_XMP) }
-            val after = BitmapFactory.Options().apply { inJustDecodeBounds = true }.also { o -> cr.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, o) } }
-            xmp?.contains(note.id) == true && after.outWidth == before.outWidth && after.outHeight == before.outHeight && after.outWidth > 0
+            val after = cr.openInputStream(uri)?.use { it.readBytes() } ?: return@runCatching false
+            val tail = minOf(original.size, after.size, 4 * 1024 * 1024)
+            val sameTail = (0 until tail).all { original[original.size - 1 - it] == after[after.size - 1 - it] }
+            val o1 = BitmapFactory.Options().apply { inJustDecodeBounds = true }.also { BitmapFactory.decodeByteArray(original, 0, original.size, it) }
+            val o2 = BitmapFactory.Options().apply { inJustDecodeBounds = true }.also { BitmapFactory.decodeByteArray(after, 0, after.size, it) }
+            JpegXmp.read(after)?.contains(note.id) == true && sameTail && o2.outWidth > 0 &&
+                o1.outWidth == o2.outWidth && o1.outHeight == o2.outHeight
         }.getOrDefault(false)
         if (!ok) {
             restore(context, uri, backup)

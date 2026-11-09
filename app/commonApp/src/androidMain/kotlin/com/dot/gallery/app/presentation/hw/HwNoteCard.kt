@@ -74,6 +74,41 @@ import java.time.ZoneId
 private val CN_WEEK = arrayOf("星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日")
 private val DateFamily = FontFamily(androidx.compose.ui.text.font.Font(com.dot.gallery.R.font.hw_cormorant_medium))
 
+/** 照片详情（只读）：文件名、分辨率、大小、相机、镜头参数。 */
+private suspend fun loadDetails(context: android.content.Context, m: UriMedia): List<Pair<String, String>> =
+    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val out = ArrayList<Pair<String, String>>()
+        out += "文件" to m.label
+        val mb = m.size / 1024.0 / 1024.0
+        runCatching {
+            context.contentResolver.openInputStream(m.getUri())?.use { input ->
+                val e = androidx.exifinterface.media.ExifInterface(input)
+                val w = e.getAttributeInt(androidx.exifinterface.media.ExifInterface.TAG_IMAGE_WIDTH, 0)
+                val h = e.getAttributeInt(androidx.exifinterface.media.ExifInterface.TAG_IMAGE_LENGTH, 0)
+                out += "尺寸" to (if (w > 0 && h > 0) "$w × $h · " else "") + "%.1f MB".format(mb)
+                val make = e.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_MAKE).orEmpty().trim()
+                val model = e.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_MODEL).orEmpty().trim()
+                val camera = if (model.startsWith(make, true)) model else "$make $model".trim()
+                if (camera.isNotEmpty()) out += "相机" to camera
+                val f = e.getAttributeDouble(androidx.exifinterface.media.ExifInterface.TAG_F_NUMBER, 0.0)
+                val t = e.getAttributeDouble(androidx.exifinterface.media.ExifInterface.TAG_EXPOSURE_TIME, 0.0)
+                val iso = e.getAttributeInt(androidx.exifinterface.media.ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY, 0)
+                val fl = e.getAttributeDouble(androidx.exifinterface.media.ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM, 0.0)
+                    .takeIf { it > 0 } ?: e.getAttributeDouble(androidx.exifinterface.media.ExifInterface.TAG_FOCAL_LENGTH, 0.0)
+                val parts = buildList {
+                    if (fl > 0) add("%.0fmm".format(fl))
+                    if (f > 0) add("ƒ/%.1f".format(f))
+                    if (t > 0) add(if (t >= 1) "%.1fs".format(t) else "1/%.0fs".format(1 / t))
+                    if (iso > 0) add("ISO $iso")
+                }
+                if (parts.isNotEmpty()) out += "参数" to parts.joinToString("  ")
+                e.latLong?.let { out += "坐标" to "%.5f, %.5f".format(it[0], it[1]) }
+            }
+        }.onFailure { out += "大小" to "%.1f MB".format(mb) }
+        out += "位置" to m.relativePath.trimEnd('/')
+        out
+    }
+
 @Composable
 fun rememberNotesRepository(): HwNotesRepository {
     val context = LocalContext.current
@@ -156,6 +191,33 @@ fun HwNoteCard(media: UriMedia, modifier: Modifier = Modifier) {
                 Text(media.albumLabel, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, modifier = Modifier.padding(bottom = 4.dp))
             }
             HorizontalDivider(color = colors.outline, thickness = 0.5.dp)
+
+            // 照片详情（只读，可收起）
+            var details by remember(media.id) { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+            var showDetails by remember { mutableStateOf(false) }
+            LaunchedEffect(media.id) { details = loadDetails(context, media) }
+            Row(
+                Modifier.fillMaxWidth().clickable { showDetails = !showDetails }.padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("照片信息", style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+                Spacer(Modifier.weight(1f))
+                Text(
+                    details.firstOrNull { it.first == "相机" }?.second ?: details.firstOrNull { it.first == "尺寸" }?.second.orEmpty(),
+                    style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1
+                )
+                Text(if (showDetails) "  收起" else "  展开", style = MaterialTheme.typography.labelSmall, color = colors.primary)
+            }
+            if (showDetails) {
+                details.forEach { (k, v) ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
+                        Text(k, fontSize = 12.sp, letterSpacing = 0.1.em, color = colors.onSurfaceVariant, modifier = Modifier.width(56.dp))
+                        Text(v, fontSize = 13.sp, color = colors.onBackground)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+            HorizontalDivider(color = colors.outlineVariant, thickness = 0.5.dp)
 
             // 一段话
             BasicTextField(

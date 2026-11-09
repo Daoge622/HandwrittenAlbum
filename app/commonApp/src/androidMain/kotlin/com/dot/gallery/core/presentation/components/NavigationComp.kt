@@ -1009,7 +1009,9 @@ fun NavigationComp(
             composable(
                 route = Screen.LibraryScreen()
             ) {
-                LibraryScreen(
+                // 手写相册：「我」页；原资料库页保留在下方，暂不使用
+                com.dot.gallery.app.presentation.hw.HwMeScreen(paddingValues = paddingValues)
+                if (false) LibraryScreen(
                     paddingValues = paddingValues,
                     isScrolling = isScrolling,
                     sharedTransitionScope = sharedTransitionScope,

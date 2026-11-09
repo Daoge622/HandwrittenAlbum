@@ -76,6 +76,7 @@ import com.dot.gallery.core.toggleNavigationBar
 import com.dot.gallery.domain.model.UriMedia
 import com.dot.gallery.domain.model.definedTimestamp
 import com.dot.gallery.domain.util.getUri
+import com.dot.gallery.domain.util.isVideo
 import com.github.panpf.sketch.AsyncImage
 import com.github.panpf.sketch.request.ComposableImageRequest
 import com.github.panpf.zoomimage.SketchZoomAsyncImage
@@ -180,6 +181,21 @@ private fun HwViewerOverlay(state: HwViewerState) {
     val eventHandler = LocalEventHandler.current
     val scope = rememberCoroutineScope()
     val card = remember { Animatable(0f) }
+    val handler = com.dot.gallery.core.LocalMediaHandler.current
+    val favOverride = remember { androidx.compose.runtime.mutableStateMapOf<Long, Boolean>() }
+    var moreOpen by remember { mutableStateOf(false) }
+    var pendingTrash by remember { mutableStateOf<UriMedia?>(null) }
+    fun removeCurrent() {
+        val list = state.items.toMutableList()
+        val i = state.index
+        if (i in list.indices) list.removeAt(i)
+        if (list.isEmpty()) { state.visible = false; eventHandler.toggleNavigationBar(true); return }
+        state.items = list
+        state.index = i.coerceAtMost(list.lastIndex)
+        state.openRequest++ // 让翻页器按新列表重建
+    }
+    val favoriteRequest = com.dot.gallery.core.ui.util.rememberActivityResult()
+    val trashRequest = com.dot.gallery.core.ui.util.rememberActivityResult(onResultOk = { if (pendingTrash != null) removeCurrent() })
     val notesRepo = rememberNotesRepository()
     val withNotes by remember { notesRepo.mediaIdsWithNotes() }.collectAsState(initial = emptyList())
     val paper = MaterialTheme.colorScheme.background
@@ -287,7 +303,8 @@ private fun HwViewerOverlay(state: HwViewerState) {
                 }
             ) { page ->
                 val pm = state.items[page]
-                SketchZoomAsyncImage(
+                if (pm.isVideo) HwVideo(pm, active = pager.currentPage == page && card.value < 0.01f, uiAlpha = 1f - card.value)
+                else SketchZoomAsyncImage(
                     uri = pm.getUri().toString(),
                     contentDescription = pm.label,
                     zoomState = rememberSketchZoomState(),
@@ -360,23 +377,65 @@ private fun HwViewerOverlay(state: HwViewerState) {
                 .graphicsLayer { alpha = uiAlpha },
             horizontalArrangement = Arrangement.Center
         ) {
+            val fav = favOverride[m.id] ?: (m.favorite == 1)
             ViewerAction("附言", dot = m.id in withNotes) { scope.launch { card.animateTo(1f, CardSpring) } }
-            ViewerAction("分享") {
-                val i = Intent(Intent.ACTION_SEND).apply {
-                    type = m.mimeType
-                    putExtra(Intent.EXTRA_STREAM, m.getUri())
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            ViewerAction(if (fav) "已收藏" else "收藏", tint = if (fav) Color(0xFFE8A99F) else Color.White) {
+                favOverride[m.id] = !fav
+                scope.launch { handler.toggleFavorite(favoriteRequest, listOf(m), !fav) }
+            }
+            if (!m.isVideo) ViewerAction("编辑") { com.dot.gallery.app.presentation.edit.EditActivity.launchEditor(context, m.getUri()) }
+            ViewerAction("删除") {
+                pendingTrash = m
+                scope.launch {
+                    when (handler.trashMedia(trashRequest, listOf(m), true)) {
+                        com.dot.gallery.data.repository.MediaMutationResult.COMPLETED -> removeCurrent()
+                        else -> Unit // 需要系统确认时，确认后在回调里移除
+                    }
                 }
-                context.startActivity(Intent.createChooser(i, null))
+            }
+            Box {
+                ViewerAction("更多") { moreOpen = true }
+                androidx.compose.material3.DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
+                    androidx.compose.material3.DropdownMenuItem(text = { Text("分享") }, onClick = {
+                        moreOpen = false
+                        val i = Intent(Intent.ACTION_SEND).apply {
+                            type = m.mimeType
+                            putExtra(Intent.EXTRA_STREAM, m.getUri())
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(i, null))
+                    })
+                    if (!m.isVideo) androidx.compose.material3.DropdownMenuItem(text = { Text("设为壁纸 / 联系人头像") }, onClick = {
+                        moreOpen = false
+                        val i = Intent(Intent.ACTION_ATTACH_DATA).apply {
+                            setDataAndType(m.getUri(), m.mimeType)
+                            putExtra("mimeType", m.mimeType)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(i, null))
+                    })
+                    if (!m.isVideo) androidx.compose.material3.DropdownMenuItem(text = { Text("向右旋转") }, onClick = {
+                        moreOpen = false
+                        scope.launch { handler.rotateImage(m, 90) }
+                    })
+                    androidx.compose.material3.DropdownMenuItem(text = { Text("用其他应用打开") }, onClick = {
+                        moreOpen = false
+                        val i = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(m.getUri(), m.mimeType)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(i, null))
+                    })
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ViewerAction(label: String, dot: Boolean = false, onClick: () -> Unit) {
-    Box(Modifier.clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 10.dp)) {
-        Text(label, color = Color.White, fontSize = 15.sp, letterSpacing = 0.2.em)
+private fun ViewerAction(label: String, dot: Boolean = false, tint: Color = Color.White, onClick: () -> Unit) {
+    Box(Modifier.clickable(onClick = onClick).padding(horizontal = 13.dp, vertical = 10.dp)) {
+        Text(label, color = tint, fontSize = 15.sp, letterSpacing = 0.15.em)
         // 已有附言：右上角一个朱红小点
         if (dot) Box(Modifier.align(Alignment.TopEnd).offset(x = 7.dp, y = (-2).dp).size(5.dp).background(Color(0xFFB22A20), androidx.compose.foundation.shape.CircleShape))
     }
