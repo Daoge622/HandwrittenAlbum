@@ -122,6 +122,13 @@ interface PhotoNoteDao {
     @Query("SELECT DISTINCT i.mediaId FROM photo_note n JOIN media_identity i ON i.id = n.identityId")
     fun mediaIdsWithNotes(): Flow<List<Long>>
 
+    /** 搜索：附言正文、自定义栏目（名称和内容）中包含关键字的照片（MediaStore id）。 */
+    @Query(
+        "SELECT DISTINCT i.mediaId FROM photo_note n JOIN media_identity i ON i.id = n.identityId " +
+            "WHERE n.text LIKE '%' || :q || '%' OR n.fieldsJson LIKE '%' || :q || '%'"
+    )
+    suspend fun searchMediaIds(q: String): List<Long>
+
     @Query("DELETE FROM photo_note WHERE id = :id")
     suspend fun delete(id: String)
 

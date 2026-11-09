@@ -95,7 +95,7 @@ fun rememberNavigationItems(): List<NavigationItem> {
     return remember {
         listOf(
             NavigationItem(name = "今日", route = Screen.TimelineScreen.route, icon = Icons.Outlined.Photo),
-            NavigationItem(name = "相册", route = Screen.AlbumsScreen.route, icon = com.dot.gallery.ui.core.Icons.Albums),
+            NavigationItem(name = "相册", route = Screen.HwAlbumScreen.route, icon = com.dot.gallery.ui.core.Icons.Albums),
             NavigationItem(name = "随笔", route = Screen.JournalScreen.route, icon = Icons.Outlined.Photo),
             NavigationItem(name = "我", route = Screen.LibraryScreen(), icon = Icons.Outlined.PhotoLibrary),
         )

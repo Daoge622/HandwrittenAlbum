@@ -124,6 +124,9 @@ sealed class Screen(val route: String) {
     // 手写相册：随笔
     data object JournalScreen : Screen("journal_screen")
 
+    // 手写相册：自己的相册页（照片网格 / 文件夹 / 搜索）
+    data object HwAlbumScreen : Screen("hw_album_screen")
+
     data object JournalEditScreen : Screen("journal_edit_screen") {
         fun id() = "$route?entryId={entryId}"
         fun id(entryId: String) = "$route?entryId=$entryId"

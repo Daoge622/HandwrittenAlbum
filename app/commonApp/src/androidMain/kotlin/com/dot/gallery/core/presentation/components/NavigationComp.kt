@@ -986,6 +986,13 @@ fun NavigationComp(
                 )
             }
 
+            // 手写相册：相册页
+            composable(route = Screen.HwAlbumScreen()) {
+                val albumState = timelineState()
+                com.dot.gallery.app.presentation.hw.HwViewerHost {
+                    com.dot.gallery.app.presentation.hw.HwAlbumScreen(paddingValues = paddingValues, mediaState = albumState)
+                }
+            }
             // 手写相册：随笔
             composable(route = Screen.JournalScreen()) {
                 val vm = com.dot.gallery.injection.injectViewModel<com.dot.gallery.app.presentation.journal.JournalViewModel> {
