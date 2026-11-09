@@ -81,7 +81,7 @@ private data class ThemeChoice(val key: String, val name: String, val desc: Stri
 private val Choices = listOf(
     ThemeChoice("sujian", "素笺", "随系统明暗", Color(0xFFF6F3EC), Color(0xFF1C1C1A), Color(0xFFB22A20)),
     ThemeChoice("moye", "墨夜", "始终深色", Color(0xFF0F1012), Color(0xFFECE8DC), Color(0xFFD4B47A)),
-    ThemeChoice("paper", "素笺 · 白昼", "始终浅色", Color(0xFFF6F3EC), Color(0xFF1C1C1A), Color(0xFFB22A20)),
+    ThemeChoice("paper", "白昼", "始终浅色", Color(0xFFF6F3EC), Color(0xFF1C1C1A), Color(0xFFB22A20)),
     ThemeChoice("system", "壁纸取色", "跟随系统配色", Color(0xFFDDE5DA), Color(0xFF1B1C19), Color(0xFF4C6A4F)),
 )
 

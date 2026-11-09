@@ -241,7 +241,7 @@ fun HwNoteCard(media: UriMedia, modifier: Modifier = Modifier) {
                         value = f.key, onValueChange = { fields[i] = f.copy(key = it) }, singleLine = true,
                         textStyle = TextStyle(fontSize = 13.sp, letterSpacing = 0.12.em, color = colors.onSurfaceVariant),
                         cursorBrush = SolidColor(colors.primary),
-                        decorationBox = { inner -> Box { if (f.key.isEmpty()) Text("栏目", fontSize = 13.sp, color = colors.outline); inner() } },
+                        decorationBox = { inner -> Box { if (f.key.isEmpty()) Text(if (f.value.isNotBlank()) "填栏目名" else "栏目", fontSize = 13.sp, color = if (f.value.isNotBlank()) colors.primary else colors.outline); inner() } },
                         modifier = Modifier.width(84.dp)
                     )
                     BasicTextField(

@@ -13,7 +13,10 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -222,6 +225,22 @@ private fun HwViewerOverlay(state: HwViewerState) {
         }
     }
 
+    fun endDragImpl(v: Float, closeFn: (Float) -> Unit) {
+        if (state.dragY < -with(density) { 56.dp.toPx() } || v < -flingPx) {
+            val from = state.dragY
+            scope.launch { card.animateTo(1f, CardSpring) }
+            scope.launch { Animatable(1f).animateTo(0f, SnapBackSpring) { state.dragY = from * value } }
+        } else if (card.value > 0.5f && state.dragY > 0f) {
+            val from = state.dragY
+            scope.launch { card.animateTo(0f, CardSpring) }
+            scope.launch { Animatable(1f).animateTo(0f, SnapBackSpring) { state.dragY = from * value } }
+        } else if (state.dragY > dismissPx || v > flingPx) closeFn(-v / max(box.height.toFloat(), 1f))
+        else scope.launch {
+            val from = state.dragY
+            Animatable(1f).animateTo(0f, SnapBackSpring) { state.dragY = from * value }
+        }
+    }
+
     fun close(velocity: Float = 0f) {
         state.settled = false
         scope.launch {
@@ -231,6 +250,9 @@ private fun HwViewerOverlay(state: HwViewerState) {
             eventHandler.toggleNavigationBar(true)
         }
     }
+
+    fun endDrag(v: Float) = endDragImpl(v) { close(it) }
+    val zoomStates = remember { mutableMapOf<Int, com.github.panpf.zoomimage.SketchZoomState>() }
 
     // 打开：先读出尺寸，再弹簧展开
     LaunchedEffect(state.openRequest) {
@@ -273,33 +295,33 @@ private fun HwViewerOverlay(state: HwViewerState) {
                     translationY = c * box.height * 0.06f + with(density) { 24.dp.toPx() } * c
                     val sc = 1f - 0.40f * c; scaleX = sc; scaleY = sc
                 }.pointerInput(Unit) {
-                    // 未放大时下拉关闭（放大时 zoomimage 会自己消费拖动）
-                    val tracker = VelocityTracker()
-                    detectVerticalDragGestures(
-                        onDragStart = { tracker.resetTracking() },
-                        onVerticalDrag = { change, dy ->
-                            tracker.addPosition(change.uptimeMillis, change.position)
-                            state.dragY = (state.dragY + dy).coerceAtLeast(-with(density) { 160.dp.toPx() })
-                        },
-                        onDragEnd = {
-                            val v = tracker.calculateVelocity().y
-                            if (state.dragY < -with(density) { 56.dp.toPx() } || v < -flingPx) {
-                                // 上滑：翻到“照片背面”，展开附言卡
-                                val from = state.dragY
-                                scope.launch { card.animateTo(1f, CardSpring) }
-                                scope.launch { Animatable(1f).animateTo(0f, SnapBackSpring) { state.dragY = from * value } }
-                            } else if (card.value > 0.5f && state.dragY > 0f) {
-                                val from = state.dragY
-                                scope.launch { card.animateTo(0f, CardSpring) }
-                                scope.launch { Animatable(1f).animateTo(0f, SnapBackSpring) { state.dragY = from * value } }
-                            } else if (state.dragY > dismissPx || v > flingPx) close(-v / max(box.height.toFloat(), 1f))
-                            else scope.launch {
-                                val from = state.dragY
-                                Animatable(1f).animateTo(0f, SnapBackSpring) { state.dragY = from * value }
+                    // 在子组件（缩放、翻页）之前判断手势：未放大时，竖向滑动归查看器（上滑开附言、下拉关闭）
+                    val slop = viewConfiguration.touchSlop
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                        val zs = zoomStates[pager.currentPage]
+                        if ((zs?.zoomable?.userTransform?.scaleX ?: 1f) > 1.01f) return@awaitEachGesture
+                        val tracker = VelocityTracker()
+                        var total = Offset.Zero
+                        var dragging = false
+                        while (true) {
+                            val ev = awaitPointerEvent(PointerEventPass.Initial)
+                            if (ev.changes.size > 1) return@awaitEachGesture // 双指交给缩放
+                            val c = ev.changes.first()
+                            if (!c.pressed) {
+                                if (dragging) endDrag(tracker.calculateVelocity().y)
+                                return@awaitEachGesture
                             }
-                        },
-                        onDragCancel = { state.dragY = 0f }
-                    )
+                            val d = c.positionChange()
+                            total += d
+                            if (!dragging && abs(total.y) > slop && abs(total.y) > abs(total.x) * 1.3f) dragging = true
+                            if (dragging) {
+                                c.consume()
+                                tracker.addPosition(c.uptimeMillis, c.position)
+                                state.dragY = (state.dragY + d.y).coerceAtLeast(-with(density) { 160.dp.toPx() })
+                            }
+                        }
+                    }
                 }
             ) { page ->
                 val pm = state.items[page]
@@ -307,7 +329,7 @@ private fun HwViewerOverlay(state: HwViewerState) {
                 else SketchZoomAsyncImage(
                     uri = pm.getUri().toString(),
                     contentDescription = pm.label,
-                    zoomState = rememberSketchZoomState(),
+                    zoomState = rememberSketchZoomState().also { zoomStates[page] = it },
                     alignment = Alignment.Center,
                     modifier = Modifier.fillMaxSize(),
                     scrollBar = null,
