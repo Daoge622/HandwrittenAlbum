@@ -983,6 +983,26 @@ fun NavigationComp(
                 )
             }
 
+            // 手写相册：随笔
+            composable(route = Screen.JournalScreen()) {
+                val vm = com.dot.gallery.injection.injectViewModel<com.dot.gallery.app.presentation.journal.JournalViewModel> {
+                    com.dot.gallery.app.presentation.journal.JournalViewModel(database.getJournalDao())
+                }
+                com.dot.gallery.app.presentation.journal.JournalScreen(paddingValues = paddingValues, vm = vm)
+            }
+            composable(
+                route = Screen.JournalEditScreen.id(),
+                arguments = listOf(navArgument("entryId") { type = NavType.StringType })
+            ) { entry ->
+                LaunchedEffect(Unit) { eventHandler.toggleNavigationBar(false) }
+                val vm = com.dot.gallery.injection.injectViewModel<com.dot.gallery.app.presentation.journal.JournalViewModel> {
+                    com.dot.gallery.app.presentation.journal.JournalViewModel(database.getJournalDao())
+                }
+                com.dot.gallery.app.presentation.journal.JournalEditScreen(
+                    entryId = entry.arguments?.getString("entryId").orEmpty(),
+                    vm = vm
+                )
+            }
             composable(
                 route = Screen.LibraryScreen()
             ) {

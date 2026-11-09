@@ -8,6 +8,14 @@ package com.dot.gallery.core.presentation.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
@@ -50,38 +58,35 @@ fun GalleryNavigationBarContent(
     navigationItems: List<NavigationItem>,
     onClick: (route: String) -> Unit,
 ) {
-    val allowBlur by rememberPreference(SettingsKeys.allowBlur.withDefault(supportsBlur))
-    val surfaceColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
-    val navigationShape = MaterialTheme.shapes.extraLarge
-    val backgroundModifier = remember(allowBlur, surfaceColor, navigationShape) {
-        if (!allowBlur) {
-            Modifier.background(
-                color = surfaceColor,
-                shape = navigationShape,
-            )
-        } else {
-            Modifier
-        }
-    }
-    Row(
+    // 手写相册「画报」导航：通栏纸色底 + 顶部细线；只用文字；当前页下方一个朱红小圆点，切换时弹簧滑动。
+    val colors = MaterialTheme.colorScheme
+    val selectedIndex = navigationItems.indexOfFirst { it.route == selectedRoute }.coerceAtLeast(0)
+    val dotFraction by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = selectedIndex.toFloat(),
+        animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.72f, stiffness = 520f),
+        label = "navDot"
+    )
+    Column(
         modifier = Modifier
-            .padding(horizontal = Spacing.ExtraLarge, vertical = Spacing.ExtraLarge)
+            .fillMaxWidth()
+            .background(colors.background.copy(alpha = 0.96f))
             .then(modifier)
-            .height(ComponentSize.NavigationBarHeight)
-            .clip(navigationShape)
-            .then(backgroundModifier)
-            .hazeEffectScaled(
-                state = LocalHazeState.current,
-                style = LocalHazeBlurStyle.current
-            ),
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        navigationItems.forEach { item ->
-            val selected = item.route == selectedRoute
-            GalleryNavBarItem(
-                navItem = item,
-                isSelected = selected,
-                onClick = onClick
+        androidx.compose.material3.HorizontalDivider(color = colors.outline, thickness = 0.5.dp)
+        androidx.compose.foundation.layout.BoxWithConstraints(
+            Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp)
+        ) {
+            val segment = maxWidth / navigationItems.size.coerceAtLeast(1)
+            Row(Modifier.fillMaxWidth().height(58.dp), verticalAlignment = Alignment.CenterVertically) {
+                navigationItems.forEach { item ->
+                    GalleryNavBarItem(navItem = item, isSelected = item.route == selectedRoute, onClick = onClick)
+                }
+            }
+            Box(
+                Modifier
+                    .offset(x = segment * dotFraction + segment / 2 - 3.dp, y = 44.dp)
+                    .size(6.dp)
+                    .background(colors.primary, CircleShape)
             )
         }
     }
@@ -93,39 +98,25 @@ fun RowScope.GalleryNavBarItem(
     isSelected: Boolean,
     onClick: (route: String) -> Unit,
 ) {
-    val selectedColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-        label = "selectedColor"
-    )
-    val selectedIconColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "selectedIconColor"
+    val color by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "navLabel"
     )
     Box(
         modifier = Modifier
-            .height(ComponentSize.NavigationBarHeight)
+            .height(58.dp)
             .weight(1f)
-            .selectable(
-                selected = isSelected,
-                role = Role.Tab,
-                onClick = { onClick(navItem.route) },
-            ),
+            .selectable(selected = isSelected, role = Role.Tab, onClick = { onClick(navItem.route) }),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .height(32.dp)
-                .width(ComponentSize.NavigationBarHeight)
-                .background(
-                    color = selectedColor,
-                    shape = RoundedCornerShape(percent = 100),
-                ),
-        )
-        Icon(
-            modifier = Modifier.size(22.dp),
-            imageVector = navItem.icon,
-            contentDescription = navItem.name,
-            tint = selectedIconColor,
+        Text(
+            text = navItem.name,
+            color = color,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+            fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
+            fontSize = 15.sp,
+            letterSpacing = 0.1.em,
+            modifier = Modifier.padding(bottom = 6.dp)
         )
     }
 }

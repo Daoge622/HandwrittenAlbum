@@ -73,6 +73,9 @@ import java.util.Locale
  * 动效只改 graphicsLayer（transform / alpha），不触发重新布局。
  */
 
+// 日期数字专用字体：Cormorant Garamond（SIL OFL），只含数字和拉丁字母，固定中等字重，约 27KB
+private val DateFamily = FontFamily(androidx.compose.ui.text.font.Font(com.dot.gallery.R.font.hw_cormorant_medium))
+
 private val zone: ZoneId = ZoneId.systemDefault()
 private fun UriMedia.localDate(): LocalDate = Instant.ofEpochSecond(definedTimestamp).atZone(zone).toLocalDate()
 
@@ -169,10 +172,10 @@ fun TodayScreen(
                         Text(
                             text = "%02d".format(today.dayOfMonth),
                             color = Color.White,
-                            fontFamily = FontFamily.Serif,
+                            fontFamily = DateFamily,
                             fontWeight = FontWeight.Medium,
-                            fontSize = 128.sp,
-                            lineHeight = 120.sp,
+                            fontSize = 150.sp,
+                            lineHeight = 132.sp,
                             letterSpacing = (-0.02).em,
                         )
                         Text(
@@ -242,7 +245,7 @@ fun TodayScreen(
                     .statusBarsPadding()
             ) {
                 Row(Modifier.padding(horizontal = 24.dp, vertical = 12.dp), verticalAlignment = Alignment.Bottom) {
-                    Text("%02d".format(today.dayOfMonth), fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 26.sp)
+                    Text("%02d".format(today.dayOfMonth), fontFamily = DateFamily, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 26.sp)
                     Spacer(Modifier.width(12.dp))
                     Text(
                         "${CN_MONTH[today.monthValue - 1]} · ${CN_WEEK[today.dayOfWeek.value - 1]}",

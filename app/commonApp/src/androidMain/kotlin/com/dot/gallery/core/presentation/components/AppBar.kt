@@ -91,26 +91,13 @@ internal fun navigationRailSlideOffset(
 
 @Composable
 fun rememberNavigationItems(): List<NavigationItem> {
-    val timelineTitle = stringResource(Res.string.nav_timeline)
-    val albumsTitle = stringResource(Res.string.nav_albums)
-    val libraryTitle = stringResource(Res.string.library)
-    return remember(timelineTitle, albumsTitle, libraryTitle) {
+    // 手写相册：今日 / 相册 / 随笔 / 我（导航条只显示文字，见 GalleryNavigationBar）
+    return remember {
         listOf(
-            NavigationItem(
-                name = timelineTitle,
-                route = Screen.TimelineScreen.route,
-                icon = Icons.Outlined.Photo,
-            ),
-            NavigationItem(
-                name = albumsTitle,
-                route = Screen.AlbumsScreen.route,
-                icon = com.dot.gallery.ui.core.Icons.Albums,
-            ),
-            NavigationItem(
-                name = libraryTitle,
-                route = Screen.LibraryScreen(),
-                icon = Icons.Outlined.PhotoLibrary
-            )
+            NavigationItem(name = "今日", route = Screen.TimelineScreen.route, icon = Icons.Outlined.Photo),
+            NavigationItem(name = "相册", route = Screen.AlbumsScreen.route, icon = com.dot.gallery.ui.core.Icons.Albums),
+            NavigationItem(name = "随笔", route = Screen.JournalScreen.route, icon = Icons.Outlined.Photo),
+            NavigationItem(name = "我", route = Screen.LibraryScreen(), icon = Icons.Outlined.PhotoLibrary),
         )
     }
 }

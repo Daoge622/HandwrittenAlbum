@@ -121,6 +121,14 @@ sealed class Screen(val route: String) {
 
     data object LibraryScreen : Screen(Routes.LIBRARY)
 
+    // 手写相册：随笔
+    data object JournalScreen : Screen("journal_screen")
+
+    data object JournalEditScreen : Screen("journal_edit_screen") {
+        fun id() = "$route?entryId={entryId}"
+        fun id(entryId: String) = "$route?entryId=$entryId"
+    }
+
     data object CategoriesScreen : Screen("categories_screen")
     
     data object CategoriesSettingsScreen : Screen("categories_settings_screen")

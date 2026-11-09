@@ -26,7 +26,8 @@ object SettingsKeys {
 
     /** Mirrors `com.dot.gallery.ui.theme.THEME_SEED_SYSTEM` — domain cannot depend on ui. */
     // 手写相册：默认主题为「素笺」（THEME_SEED_SUJIAN）
-    val themeColorSeed = PrefKey.string("theme_color_seed", default = "sujian")
+    // 换新键名：旧版本存下的“system”不再生效，所有人从素笺开始
+    val themeColorSeed = PrefKey.string("hw_theme_color_seed", default = "sujian")
     val useSystemFont = PrefKey.bool("use_system_font", default = false)
 
     // Appearance / visual effects
