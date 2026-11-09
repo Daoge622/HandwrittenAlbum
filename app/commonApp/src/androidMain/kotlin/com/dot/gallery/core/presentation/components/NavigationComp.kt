@@ -341,10 +341,13 @@ fun NavigationComp(
                 route = Screen.TimelineScreen()
             ) {
                 // 手写相册：首页换成「今日」画报；原时间线保留在下方代码里，后续并入「相册」页
-                com.dot.gallery.app.presentation.today.TodayScreen(
-                    paddingValues = paddingValues,
-                    mediaState = timelineState(),
-                )
+                val todayState = timelineState()
+                com.dot.gallery.app.presentation.hw.HwViewerHost {
+                    com.dot.gallery.app.presentation.today.TodayScreen(
+                        paddingValues = paddingValues,
+                        mediaState = todayState,
+                    )
+                }
                 if (false) TimelineScreen(
                     paddingValues = paddingValues,
                     isScrolling = isScrolling,

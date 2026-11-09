@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.dot.gallery.core.LocalEventHandler
+import com.dot.gallery.app.presentation.hw.hwThumb
 import com.dot.gallery.core.navigate
 import com.dot.gallery.core.presentation.util.Screen
 import com.dot.gallery.domain.model.MediaState
@@ -90,7 +91,10 @@ fun TodayScreen(
     val eventHandler = LocalEventHandler.current
     val media = mediaState.value.media
     val today = remember { LocalDate.now(zone) }
-    val open: (UriMedia) -> Unit = { eventHandler.navigate(Screen.MediaViewScreen.idAndAlbum(it.id, -1L)) }
+    val viewer = com.dot.gallery.app.presentation.hw.LocalHwViewer.current
+    val open: (UriMedia) -> Unit = { m ->
+        if (viewer != null) viewer.open(media, m) else eventHandler.navigate(Screen.MediaViewScreen.idAndAlbum(m.id, -1L))
+    }
 
     val hero = media.firstOrNull()
     val weekStart = today.minusDays(6)
@@ -139,6 +143,7 @@ fun TodayScreen(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxSize()
+                                .hwThumb(viewer, hero)
                                 .graphicsLayer {
                                     translationY = scrollPx * 0.35f
                                     val s = 1f + progress * 0.06f
@@ -275,7 +280,8 @@ private fun SectionHead(title: String, trailing: String) {
 
 @Composable
 private fun Photo(media: UriMedia, open: (UriMedia) -> Unit, modifier: Modifier) {
-    Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant).clickable { open(media) }) {
+    val viewer = com.dot.gallery.app.presentation.hw.LocalHwViewer.current
+    Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant).hwThumb(viewer, media).clickable { open(media) }) {
         AsyncImage(
             request = ComposableImageRequest(media.getUri().toString()),
             contentDescription = media.label,
