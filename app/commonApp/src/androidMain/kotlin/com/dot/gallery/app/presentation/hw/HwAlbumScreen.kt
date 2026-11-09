@@ -100,19 +100,26 @@ fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<Uri
     var album by remember { mutableStateOf<Pair<Long, String>?>(null) }
     var query by remember { mutableStateOf("") }
     var noteHits by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    val allTags by remember { repo.allTags() }.collectAsState(initial = emptyList())
+    var selectedTags by remember { mutableStateOf<List<Long>>(emptyList()) }
+    val tagIds by remember(selectedTags) {
+        if (selectedTags.isEmpty()) kotlinx.coroutines.flow.flowOf<List<Long>?>(null) else repo.mediaIdsWithAllTags(selectedTags)
+    }.collectAsState(initial = null)
+    val tagSet = remember(tagIds) { tagIds?.toHashSet() }
 
     // 附言与栏目的匹配走数据库，停顿 250ms 再查
     LaunchedEffect(query) {
         val q = query.trim()
         if (q.isEmpty()) { noteHits = emptySet(); return@LaunchedEffect }
         delay(250)
-        noteHits = repo.searchMediaIds(q).toHashSet()
+        noteHits = (repo.searchMediaIds(q) + repo.mediaIdsByTagName(q)).toHashSet()
     }
 
-    val shown = remember(all, album, query, noteHits) {
+    val shown = remember(all, album, query, noteHits, tagSet) {
         val q = query.trim()
         all.asSequence()
             .filter { album == null || it.albumID == album!!.first }
+            .filter { tagSet == null || it.id in tagSet }
             .filter { m ->
                 if (q.isEmpty()) true else {
                     val d = Instant.ofEpochSecond(m.definedTimestamp).atZone(zone)
@@ -159,15 +166,32 @@ fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<Uri
                 value = query, onValueChange = { query = it; if (it.isNotBlank()) folders = false }, singleLine = true,
                 textStyle = TextStyle(fontSize = 16.sp, color = colors.onBackground),
                 cursorBrush = SolidColor(colors.primary),
-                decorationBox = { inner -> Box { if (query.isEmpty()) Text("搜附言、栏目、相册、日期", fontSize = 16.sp, color = colors.outline); inner() } },
+                decorationBox = { inner -> Box { if (query.isEmpty()) Text("搜附言、标签、栏目、相册、日期", fontSize = 16.sp, color = colors.outline); inner() } },
                 modifier = Modifier.weight(1f).padding(vertical = 10.dp)
             )
             if (query.isNotEmpty()) Text("清除", color = colors.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.clickable { query = "" }.padding(8.dp))
         }
         HorizontalDivider(Modifier.padding(horizontal = 24.dp), color = colors.outline, thickness = 0.5.dp)
-        if (query.isNotBlank()) {
+        // 标签筛选：点选多个 = 同时带有
+        if (allTags.isNotEmpty()) {
+            androidx.compose.foundation.lazy.LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 12.dp)
+            ) {
+                items(allTags.size, key = { allTags[it].id }) { i ->
+                    val t = allTags[i]
+                    val on = t.id in selectedTags
+                    TagChip(t, selected = on, onClick = {
+                        selectedTags = if (on) selectedTags - t.id else selectedTags + t.id
+                        if (!on) folders = false
+                    })
+                }
+            }
+        }
+        if (query.isNotBlank() || selectedTags.isNotEmpty()) {
             Text(
-                "找到 ${shown.size} 张" + if (noteHits.isNotEmpty()) " · 其中 ${shown.count { it.id in noteHits }} 张附言匹配" else "",
+                "找到 ${shown.size} 张" + if (query.isNotBlank() && noteHits.isNotEmpty()) " · 其中 ${shown.count { it.id in noteHits }} 张附言或标签匹配" else "",
                 style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant,
                 modifier = Modifier.padding(start = 24.dp, top = 10.dp)
             )

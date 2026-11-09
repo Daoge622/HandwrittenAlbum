@@ -68,6 +68,30 @@ interface TagDao {
     @Query("SELECT t.* FROM hw_tag t JOIN hw_media_tag m ON m.tagId = t.id WHERE m.identityId = :identityId ORDER BY t.sortOrder, t.name")
     fun tagsOf(identityId: Long): Flow<List<TagEntity>>
 
+    /** 某张照片（按 MediaStore id）的标签。 */
+    @Query(
+        "SELECT t.* FROM hw_tag t JOIN hw_media_tag m ON m.tagId = t.id JOIN media_identity i ON i.id = m.identityId " +
+            "WHERE i.mediaId = :mediaId ORDER BY m.addedAt"
+    )
+    fun tagsOfMedia(mediaId: Long): Flow<List<TagEntity>>
+
+    @Query("SELECT * FROM hw_tag WHERE name = :name LIMIT 1")
+    suspend fun tagByName(name: String): TagEntity?
+
+    /** 标签名包含关键字的照片（MediaStore id），用于搜索。 */
+    @Query(
+        "SELECT DISTINCT i.mediaId FROM hw_media_tag m JOIN hw_tag t ON t.id = m.tagId JOIN media_identity i ON i.id = m.identityId " +
+            "WHERE t.name LIKE '%' || :q || '%'"
+    )
+    suspend fun mediaIdsByTagName(q: String): List<Long>
+
+    /** 同时带有全部给定标签的照片（MediaStore id）。 */
+    @Query(
+        "SELECT i.mediaId FROM hw_media_tag m JOIN media_identity i ON i.id = m.identityId " +
+            "WHERE m.tagId IN (:tagIds) GROUP BY i.mediaId HAVING COUNT(DISTINCT m.tagId) = :count"
+    )
+    fun mediaIdsWithAllTags(tagIds: List<Long>, count: Int): Flow<List<Long>>
+
     @Query("SELECT tagId, COUNT(*) AS count FROM hw_media_tag GROUP BY tagId")
     fun tagCounts(): Flow<List<TagCount>>
 

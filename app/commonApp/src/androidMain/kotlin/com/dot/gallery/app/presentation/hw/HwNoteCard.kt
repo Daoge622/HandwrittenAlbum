@@ -233,6 +233,10 @@ fun HwNoteCard(media: UriMedia, modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp)
             )
 
+            // 标签
+            HorizontalDivider(color = colors.outlineVariant, thickness = 0.5.dp)
+            HwTagRow(media, repo)
+
             // 自定义栏目
             fields.forEachIndexed { i, f ->
                 HorizontalDivider(color = colors.outlineVariant, thickness = 0.5.dp)

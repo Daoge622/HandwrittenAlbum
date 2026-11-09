@@ -82,6 +82,34 @@ class HwNotesRepository(private val db: InternalDatabase) {
     }
 
     suspend fun markWritten(noteId: String) = notes.markWritten(noteId, System.currentTimeMillis())
+
+    // ---- 标签 ----
+    fun allTags() = tags.tags()
+    fun tagsOf(mediaId: Long) = tags.tagsOfMedia(mediaId)
+    fun mediaIdsWithAllTags(ids: List<Long>) = tags.mediaIdsWithAllTags(ids, ids.size)
+    suspend fun mediaIdsByTagName(q: String) = tags.mediaIdsByTagName(q)
+
+    /** 给照片加标签：标签不存在就新建（颜色按名字固定分配）。 */
+    suspend fun addTag(m: UriMedia, rawName: String) {
+        val name = rawName.trim().removePrefix("#").trim()
+        if (name.isEmpty()) return
+        val tag = tags.tagByName(name) ?: run {
+            val palette = intArrayOf(0xFFB22A20.toInt(), 0xFF5E7A6E.toInt(), 0xFFC9785B.toInt(), 0xFF3E6FB0.toInt(), 0xFF8A6D3B.toInt(), 0xFF6B5B95.toInt())
+            val id = tags.insertTag(
+                com.dot.gallery.data.entity.TagEntity(
+                    name = name, color = palette[Math.floorMod(name.hashCode(), palette.size)],
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+            tags.tagByName(name) ?: return
+        }
+        tags.addTags(listOf(com.dot.gallery.data.entity.MediaTagEntity(identityFor(m), tag.id, System.currentTimeMillis())))
+    }
+
+    suspend fun removeTag(m: UriMedia, tagId: Long) {
+        val identity = tags.identityByMediaId(m.id) ?: return
+        tags.removeTag(tagId, listOf(identity.id))
+    }
 }
 
 sealed interface WriteResult {
