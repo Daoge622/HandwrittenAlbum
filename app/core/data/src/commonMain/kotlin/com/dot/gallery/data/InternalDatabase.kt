@@ -161,7 +161,7 @@ import com.dot.gallery.data.Converters
         JournalBlockEntity::class,
         InkDrawingEntity::class
     ],
-    version = 54,
+    version = 55,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -220,6 +220,7 @@ import com.dot.gallery.data.Converters
         AutoMigration(from = 51, to = 52), // face_suppressions (deleted-person face bans, #1262)
         AutoMigration(from = 52, to = 53), // people.birthDate (on-device person birthday)
         AutoMigration(from = 53, to = 54), // 手写相册：标签、光注、随笔、手写笔迹、照片身份指纹
+        AutoMigration(from = 54, to = 55), // 手写相册：光注自定义栏目 photo_note.fieldsJson
     ]
 )
 @ColumnTypeConverters(Converters::class, CloudConverters::class, SmartScanConverters::class)

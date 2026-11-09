@@ -1,0 +1,181 @@
+/*
+ * SPDX-FileCopyrightText: 2026 手写相册 contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+package com.dot.gallery.app.presentation.hw
+
+import android.content.Context
+import android.graphics.BitmapFactory
+import androidx.exifinterface.media.ExifInterface
+import com.dot.gallery.data.InternalDatabase
+import com.dot.gallery.data.entity.MediaIdentityEntity
+import com.dot.gallery.data.entity.PhotoNoteEntity
+import com.dot.gallery.domain.model.UriMedia
+import com.dot.gallery.domain.util.getUri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.util.UUID
+
+/*
+ * 光注（照片附言）：
+ * - 默认只存在手写相册的数据库里；
+ * - 用户手动点“写入照片”时，才写进照片文件的 XMP（并同步 EXIF ImageDescription），原图像素不动；
+ * - 写入流程：写前备份 → 合并 XMP（保留实况照片等已有字段）→ 写后校验（我们的 UUID 在、照片仍能解码、尺寸不变）→ 失败用备份还原。
+ */
+
+data class NoteField(val key: String, val value: String)
+
+fun List<NoteField>.toJson(): String = JSONArray().also { a ->
+    forEach { a.put(JSONObject().put("k", it.key).put("v", it.value)) }
+}.toString()
+
+fun parseFields(json: String?): List<NoteField> = runCatching {
+    val a = JSONArray(json ?: "[]")
+    List(a.length()) { i -> a.getJSONObject(i).let { NoteField(it.optString("k"), it.optString("v")) } }
+}.getOrDefault(emptyList())
+
+class HwNotesRepository(private val db: InternalDatabase) {
+    private val tags = db.getTagDao()
+    private val notes = db.getPhotoNoteDao()
+
+    fun noteFlow(mediaId: Long) = notes.noteForMedia(mediaId)
+    fun mediaIdsWithNotes() = notes.mediaIdsWithNotes()
+
+    private suspend fun identityFor(m: UriMedia): Long {
+        tags.identityByMediaId(m.id)?.let { return it.id }
+        return tags.insertIdentity(
+            MediaIdentityEntity(
+                mediaId = m.id, uri = m.getUri().toString(), size = m.size,
+                dateTaken = m.takenTimestamp ?: (m.timestamp * 1000), width = 0, height = 0,
+                lastSeenAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    /** 保存（或清空）附言。文字和栏目都为空时删除这条附言。内容变化后“已写入照片”标记失效。 */
+    suspend fun save(m: UriMedia, existing: PhotoNoteEntity?, text: String, fields: List<NoteField>) {
+        val cleanFields = fields.filter { it.key.isNotBlank() || it.value.isNotBlank() }
+        if (text.isBlank() && cleanFields.isEmpty()) {
+            existing?.let { notes.delete(it.id) }
+            return
+        }
+        val now = System.currentTimeMillis()
+        val fieldsJson = cleanFields.toJson()
+        val changed = existing == null || existing.text != text || (existing.fieldsJson ?: "[]") != fieldsJson
+        if (!changed) return
+        notes.upsert(
+            PhotoNoteEntity(
+                id = existing?.id ?: UUID.randomUUID().toString(),
+                identityId = existing?.identityId ?: identityFor(m),
+                text = text,
+                createdAt = existing?.createdAt ?: now,
+                updatedAt = now,
+                writtenToFile = false,
+                writtenAt = existing?.writtenAt,
+                fieldsJson = fieldsJson,
+            )
+        )
+    }
+
+    suspend fun markWritten(noteId: String) = notes.markWritten(noteId, System.currentTimeMillis())
+}
+
+sealed interface WriteResult {
+    data object Ok : WriteResult
+    data object Unsupported : WriteResult
+    /** 需要系统授权才能修改这张照片（Android 11+ 的 MediaStore 写入请求）。 */
+    data class NeedsPermission(val error: SecurityException) : WriteResult
+    data class Failed(val reason: String) : WriteResult
+}
+
+object HwXmpWriter {
+    private const val NS = "https://github.com/Daoge622/HandwrittenAlbum/ns/1.0/"
+
+    fun supports(mime: String) = mime == "image/jpeg" || mime == "image/png" || mime == "image/webp"
+
+    private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+
+    /** 我们要写的属性（dc:description 是通用字段，hw:* 是手写相册自己的命名空间）。 */
+    private fun ourProps(note: PhotoNoteEntity, fields: List<NoteField>): String = buildString {
+        append("<dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">").append(esc(note.text)).append("</rdf:li></rdf:Alt></dc:description>")
+        append("<hw:uuid>").append(note.id).append("</hw:uuid>")
+        append("<hw:note>").append(esc(note.text)).append("</hw:note>")
+        append("<hw:fields>").append(esc(fields.toJson())).append("</hw:fields>")
+        append("<hw:updated>").append(note.updatedAt).append("</hw:updated>")
+    }
+
+    /** 合并进已有 XMP：先去掉旧的 dc:description 和 hw:*，再插入新的；没有 XMP 就新建一个包。 */
+    fun merge(existing: String?, note: PhotoNoteEntity, fields: List<NoteField>): String {
+        val props = ourProps(note, fields)
+        val ns = "xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:hw=\"$NS\""
+        if (existing.isNullOrBlank() || !existing.contains("rdf:Description")) {
+            return "<?xpacket begin=\"﻿\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>" +
+                "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
+                "<rdf:Description rdf:about=\"\" $ns>$props</rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end=\"w\"?>"
+        }
+        var x = existing
+            .replace(Regex("<dc:description>.*?</dc:description>", RegexOption.DOT_MATCHES_ALL), "")
+            .replace(Regex("<hw:(\\w+)>.*?</hw:\\1>", RegexOption.DOT_MATCHES_ALL), "")
+        // 第一个 rdf:Description：补命名空间；自闭合的改成成对标签，再把属性放进去
+        val open = Regex("<rdf:Description\\b([^>]*?)(/?)>").find(x) ?: return x
+        var attrs = open.groupValues[1]
+        if (!attrs.contains("xmlns:dc=")) attrs += " xmlns:dc=\"http://purl.org/dc/elements/1.1/\""
+        if (!attrs.contains("xmlns:hw=")) attrs += " xmlns:hw=\"$NS\""
+        val replacement = if (open.groupValues[2] == "/") "<rdf:Description$attrs>$props</rdf:Description>"
+        else "<rdf:Description$attrs>$props"
+        x = x.replaceRange(open.range, replacement)
+        return x
+    }
+
+    suspend fun write(context: Context, m: UriMedia, note: PhotoNoteEntity): WriteResult = withContext(Dispatchers.IO) {
+        if (!supports(m.mimeType)) return@withContext WriteResult.Unsupported
+        val uri = m.getUri()
+        val cr = context.contentResolver
+        val fields = parseFields(note.fieldsJson)
+        // 1. 写前备份
+        val dir = File(context.filesDir, "hw_backups").apply { mkdirs() }
+        dir.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 7L * 24 * 3600 * 1000 }?.forEach { it.delete() }
+        val backup = File(dir, "${m.id}_${System.currentTimeMillis()}.bak")
+        val before = runCatching {
+            cr.openInputStream(uri)?.use { input -> backup.outputStream().use { input.copyTo(it) } }
+            BitmapFactory.Options().apply { inJustDecodeBounds = true }.also { o -> cr.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, o) } }
+        }.getOrElse { return@withContext WriteResult.Failed("读取原图失败：${it.message}") }
+        // 2. 合并写入
+        try {
+            cr.openFileDescriptor(uri, "rw")?.use { pfd ->
+                ExifInterface(pfd.fileDescriptor).apply {
+                    setAttribute(ExifInterface.TAG_XMP, merge(getAttribute(ExifInterface.TAG_XMP), note, fields))
+                    setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, note.text)
+                    saveAttributes()
+                }
+            } ?: return@withContext WriteResult.Failed("无法打开照片")
+        } catch (e: SecurityException) {
+            backup.delete()
+            return@withContext WriteResult.NeedsPermission(e)
+        } catch (e: Exception) {
+            restore(context, uri, backup)
+            return@withContext WriteResult.Failed("写入失败：${e.message}")
+        }
+        // 3. 写后校验
+        val ok = runCatching {
+            val xmp = cr.openInputStream(uri)?.use { ExifInterface(it).getAttribute(ExifInterface.TAG_XMP) }
+            val after = BitmapFactory.Options().apply { inJustDecodeBounds = true }.also { o -> cr.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, o) } }
+            xmp?.contains(note.id) == true && after.outWidth == before.outWidth && after.outHeight == before.outHeight && after.outWidth > 0
+        }.getOrDefault(false)
+        if (!ok) {
+            restore(context, uri, backup)
+            return@withContext WriteResult.Failed("校验未通过，已还原原图")
+        }
+        WriteResult.Ok
+    }
+
+    private fun restore(context: Context, uri: android.net.Uri, backup: File) {
+        runCatching {
+            if (backup.exists()) context.contentResolver.openOutputStream(uri, "wt")?.use { out -> backup.inputStream().use { it.copyTo(out) } }
+        }
+    }
+}

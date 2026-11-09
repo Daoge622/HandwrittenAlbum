@@ -96,7 +96,9 @@ data class PhotoNoteEntity(
     val updatedAt: Long,
     /** 是否已写进照片文件的 XMP/EXIF。 */
     val writtenToFile: Boolean = false,
-    val writtenAt: Long? = null
+    val writtenAt: Long? = null,
+    /** 用户自定义栏目，JSON 数组：[{"k":"同行","v":"小王"}, ...]（v55 起） */
+    val fieldsJson: String? = null
 )
 
 /** 随笔（图文日记）。正文由有序的 [JournalBlockEntity] 组成。 */

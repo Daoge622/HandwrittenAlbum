@@ -111,6 +111,17 @@ interface PhotoNoteDao {
     @Query("SELECT * FROM photo_note WHERE id = :id")
     suspend fun note(id: String): PhotoNoteEntity?
 
+    /** 某张照片（按 MediaStore id）当前的光注；一张照片只保留一条附言。 */
+    @Query(
+        "SELECT n.* FROM photo_note n JOIN media_identity i ON i.id = n.identityId " +
+            "WHERE i.mediaId = :mediaId ORDER BY n.updatedAt DESC LIMIT 1"
+    )
+    fun noteForMedia(mediaId: Long): Flow<PhotoNoteEntity?>
+
+    /** 有光注的照片的 MediaStore id，网格里用来显示小标记。 */
+    @Query("SELECT DISTINCT i.mediaId FROM photo_note n JOIN media_identity i ON i.id = n.identityId")
+    fun mediaIdsWithNotes(): Flow<List<Long>>
+
     @Query("DELETE FROM photo_note WHERE id = :id")
     suspend fun delete(id: String)
 

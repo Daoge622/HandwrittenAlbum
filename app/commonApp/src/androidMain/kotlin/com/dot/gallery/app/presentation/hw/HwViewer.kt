@@ -25,7 +25,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -97,6 +101,7 @@ import kotlin.math.min
 private val OpenSpring = spring<Float>(dampingRatio = 0.92f, stiffness = 380f)
 private val CloseSpring = spring<Float>(dampingRatio = 0.90f, stiffness = 360f)
 private val SnapBackSpring = spring<Float>(dampingRatio = 0.89f, stiffness = 500f)
+private val CardSpring = spring<Float>(dampingRatio = 0.86f, stiffness = 320f)
 
 @Stable
 class HwViewerState {
@@ -174,6 +179,10 @@ private fun HwViewerOverlay(state: HwViewerState) {
     val density = LocalDensity.current
     val eventHandler = LocalEventHandler.current
     val scope = rememberCoroutineScope()
+    val card = remember { Animatable(0f) }
+    val notesRepo = rememberNotesRepository()
+    val withNotes by remember { notesRepo.mediaIdsWithNotes() }.collectAsState(initial = emptyList())
+    val paper = MaterialTheme.colorScheme.background
     var origin by remember { mutableStateOf(Offset.Zero) }
     var box by remember { mutableStateOf(IntSize.Zero) }
     val dismissPx = with(density) { 110.dp.toPx() }
@@ -215,6 +224,7 @@ private fun HwViewerOverlay(state: HwViewerState) {
         state.settled = true
     }
     BackHandler(enabled = state.visible) { close() }
+    BackHandler(enabled = state.visible && card.targetValue > 0f) { scope.launch { card.animateTo(0f, CardSpring) } }
 
     Box(
         Modifier
@@ -226,7 +236,7 @@ private fun HwViewerOverlay(state: HwViewerState) {
         if (box == IntSize.Zero) return@Box
         val dragS = 1f - (state.dragY / (box.height * 1.7f)).coerceIn(0f, 0.35f)
         val bgAlpha = t * (1f - min(abs(state.dragY) / with(density) { 500.dp.toPx() }, 0.6f))
-        Box(Modifier.fillMaxSize().graphicsLayer { alpha = bgAlpha }.background(Color.Black))
+        Box(Modifier.fillMaxSize().graphicsLayer { alpha = bgAlpha }.background(androidx.compose.ui.graphics.lerp(Color.Black, paper, card.value)))
 
         if (state.settled && state.dragY == 0f && state.dragX == 0f) {
             // ---------- 展开后：翻页 + 缩放 ----------
@@ -241,18 +251,32 @@ private fun HwViewerOverlay(state: HwViewerState) {
                 state = pager,
                 beyondViewportPageCount = 1,
                 key = { state.items[it].id },
-                modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+                modifier = Modifier.fillMaxSize().graphicsLayer {
+                    val c = card.value
+                    transformOrigin = TransformOrigin(0.5f, 0f)
+                    translationY = c * box.height * 0.06f + with(density) { 24.dp.toPx() } * c
+                    val sc = 1f - 0.40f * c; scaleX = sc; scaleY = sc
+                }.pointerInput(Unit) {
                     // 未放大时下拉关闭（放大时 zoomimage 会自己消费拖动）
                     val tracker = VelocityTracker()
                     detectVerticalDragGestures(
                         onDragStart = { tracker.resetTracking() },
                         onVerticalDrag = { change, dy ->
                             tracker.addPosition(change.uptimeMillis, change.position)
-                            state.dragY = (state.dragY + dy).coerceAtLeast(-40f)
+                            state.dragY = (state.dragY + dy).coerceAtLeast(-with(density) { 160.dp.toPx() })
                         },
                         onDragEnd = {
                             val v = tracker.calculateVelocity().y
-                            if (state.dragY > dismissPx || v > flingPx) close(-v / max(box.height.toFloat(), 1f))
+                            if (state.dragY < -with(density) { 56.dp.toPx() } || v < -flingPx) {
+                                // 上滑：翻到“照片背面”，展开附言卡
+                                val from = state.dragY
+                                scope.launch { card.animateTo(1f, CardSpring) }
+                                scope.launch { Animatable(1f).animateTo(0f, SnapBackSpring) { state.dragY = from * value } }
+                            } else if (card.value > 0.5f && state.dragY > 0f) {
+                                val from = state.dragY
+                                scope.launch { card.animateTo(0f, CardSpring) }
+                                scope.launch { Animatable(1f).animateTo(0f, SnapBackSpring) { state.dragY = from * value } }
+                            } else if (state.dragY > dismissPx || v > flingPx) close(-v / max(box.height.toFloat(), 1f))
                             else scope.launch {
                                 val from = state.dragY
                                 Animatable(1f).animateTo(0f, SnapBackSpring) { state.dragY = from * value }
@@ -309,8 +333,20 @@ private fun HwViewerOverlay(state: HwViewerState) {
             }
         }
 
+        // ---------- 附言卡（照片背面） ----------
+        if (card.value > 0.001f || card.targetValue > 0f) {
+            val h = box.height * 0.64f
+            HwNoteCard(
+                media = m,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .height(with(density) { h.toDp() })
+                    .graphicsLayer { translationY = (1f - card.value) * h }
+            )
+        }
+
         // ---------- 顶部信息 + 底部操作（展开稳定后淡入） ----------
-        val uiAlpha = if (state.settled && state.dragY == 0f) 1f else 0f
+        val uiAlpha = if (state.settled && state.dragY == 0f) 1f - card.value else 0f
         val date = Instant.ofEpochSecond(m.definedTimestamp).atZone(ZoneId.systemDefault()).toLocalDate()
         Row(
             Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 14.dp).graphicsLayer { alpha = uiAlpha },
@@ -324,6 +360,7 @@ private fun HwViewerOverlay(state: HwViewerState) {
                 .graphicsLayer { alpha = uiAlpha },
             horizontalArrangement = Arrangement.Center
         ) {
+            ViewerAction("附言", dot = m.id in withNotes) { scope.launch { card.animateTo(1f, CardSpring) } }
             ViewerAction("分享") {
                 val i = Intent(Intent.ACTION_SEND).apply {
                     type = m.mimeType
@@ -337,9 +374,10 @@ private fun HwViewerOverlay(state: HwViewerState) {
 }
 
 @Composable
-private fun ViewerAction(label: String, onClick: () -> Unit) {
-    Text(
-        label, color = Color.White, fontSize = 15.sp, letterSpacing = 0.2.em,
-        modifier = Modifier.clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 10.dp)
-    )
+private fun ViewerAction(label: String, dot: Boolean = false, onClick: () -> Unit) {
+    Box(Modifier.clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 10.dp)) {
+        Text(label, color = Color.White, fontSize = 15.sp, letterSpacing = 0.2.em)
+        // 已有附言：右上角一个朱红小点
+        if (dot) Box(Modifier.align(Alignment.TopEnd).offset(x = 7.dp, y = (-2).dp).size(5.dp).background(Color(0xFFB22A20), androidx.compose.foundation.shape.CircleShape))
+    }
 }
