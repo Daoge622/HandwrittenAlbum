@@ -241,6 +241,15 @@ fun HwNoteCard(media: UriMedia, modifier: Modifier = Modifier) {
             // 标签
             HorizontalDivider(color = colors.outlineVariant, thickness = 0.5.dp)
             HwTagRow(media, repo)
+            run {
+                val smart = rememberSmart()
+                val v by smart.version.collectAsState()
+                val seen = remember(media.id, v) { smart.labelsOf(media.id) }
+                if (seen.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("画面", fontSize = 12.sp, letterSpacing = 0.12.em, color = colors.onSurfaceVariant, modifier = Modifier.width(56.dp))
+                    Text(seen.joinToString(" · "), fontFamily = FontFamily.Serif, fontSize = 13.sp, color = colors.onSurfaceVariant)
+                }
+            }
 
             // 自定义栏目
             fields.forEachIndexed { i, f ->

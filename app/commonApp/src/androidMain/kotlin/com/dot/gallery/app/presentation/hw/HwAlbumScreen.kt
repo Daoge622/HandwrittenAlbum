@@ -120,11 +120,15 @@ fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<Uri
     val tagSet = remember(tagIds) { tagIds?.toHashSet() }
 
     // 附言与栏目的匹配走数据库，停顿 250ms 再查
-    LaunchedEffect(query) {
+    val smart = rememberSmart()
+    val smartVersion by smart.version.collectAsState()
+    // 进入相册页时把新识别完的照片归好类；识别在后台进行，隔一会儿再看一次
+    LaunchedEffect(Unit) { while (true) { smart.refresh(); delay(20_000) } }
+    LaunchedEffect(query, smartVersion) {
         val q = query.trim()
         if (q.isEmpty()) { noteHits = emptySet(); return@LaunchedEffect }
         delay(250)
-        noteHits = (repo.searchMediaIds(q) + repo.mediaIdsByTagName(q)).toHashSet()
+        noteHits = (repo.searchMediaIds(q) + repo.mediaIdsByTagName(q) + smart.idsMatching(q) + smart.textSearch(q)).toHashSet()
     }
 
     val shown = remember(all, album, query, noteHits, tagSet) {
@@ -185,7 +189,7 @@ fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<Uri
                 value = query, onValueChange = { query = it; if (it.isNotBlank()) folders = false }, singleLine = true,
                 textStyle = TextStyle(fontSize = 16.sp, color = colors.onBackground),
                 cursorBrush = SolidColor(colors.primary),
-                decorationBox = { inner -> Box { if (query.isEmpty()) Text("搜附言、标签、栏目、相册、日期", fontSize = 16.sp, color = colors.outline); inner() } },
+                decorationBox = { inner -> Box { if (query.isEmpty()) Text("搜画面、附言、标签、相册、日期", fontSize = 16.sp, color = colors.outline); inner() } },
                 modifier = Modifier.weight(1f).padding(vertical = 10.dp)
             )
             if (query.isNotEmpty()) Text("清除", color = colors.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.clickable { query = "" }.padding(8.dp))
@@ -210,7 +214,7 @@ fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<Uri
         }
         if (query.isNotBlank() || selectedTags.isNotEmpty()) {
             Text(
-                "找到 ${shown.size} 张" + if (query.isNotBlank() && noteHits.isNotEmpty()) " · 其中 ${shown.count { it.id in noteHits }} 张附言或标签匹配" else "",
+                "找到 ${shown.size} 张" + if (query.isNotBlank() && noteHits.isNotEmpty()) " · 其中 ${shown.count { it.id in noteHits }} 张画面、附言或标签匹配" else "",
                 style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant,
                 modifier = Modifier.padding(start = 24.dp, top = 10.dp)
             )

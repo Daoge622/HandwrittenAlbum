@@ -46,7 +46,7 @@ jobs:
         with:
           arch: Arm64-v8a
       - name: Build optimized test APK
-        run: ./gradlew --build-cache :app:androidApp:assembleArm64-v8aNoMLRelease
+        run: ./gradlew --build-cache :app:androidApp:assembleArm64-v8aWithMLRelease
       - uses: actions/upload-artifact@v5
         with:
           name: HandwrittenAlbum-test-arm64

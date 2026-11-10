@@ -335,10 +335,10 @@ android {
         }
         if (!isBundleBuild) {
             maybeCreate("WithML").apply {
-                assets.srcDirs(
-                    "../ml-models-pack/src/main/assets",
-                    "${layout.buildDirectory.get().asFile}/generated/assets/ml-models"
-                )
+                // 手写相册：只内置识图模型（OpenAI CLIP ViT-B/32，MIT 许可）——仓库根目录
+                // ml-models/src/main/assets 里正好只有这四个文件。
+                // 抠图（SAM）和人脸（ArcFace，仅限研究用途）不打包。
+                assets.srcDirs(rootProject.file("ml-models/src/main/assets"))
             }
         }
     }
