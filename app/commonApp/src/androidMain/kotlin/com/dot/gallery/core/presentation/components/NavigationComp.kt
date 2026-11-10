@@ -327,7 +327,14 @@ fun NavigationComp(
                 LaunchedEffect(Unit) {
                     eventHandler.toggleNavigationBar(false)
                 }
-                SetupScreen {
+                com.dot.gallery.app.presentation.hw.HwWelcomeScreen {
+                    permissionState = true
+                    navController.navigate(Screen.TimelineScreen()) {
+                        popUpTo(Screen.SetupScreen()) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                if (false) SetupScreen {
                     permissionState = true
                     // Pop the wizard off the back stack so pressing back from the timeline
                     // exits the app instead of returning to setup.
