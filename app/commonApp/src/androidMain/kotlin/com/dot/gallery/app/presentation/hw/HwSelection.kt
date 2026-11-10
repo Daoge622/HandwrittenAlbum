@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.dot.gallery.core.LocalMediaHandler
+import com.dot.gallery.core.navigate
+import java.util.UUID
 import com.dot.gallery.core.ui.util.rememberActivityResult
 import com.dot.gallery.core.ui.util.writeRequest
 import com.dot.gallery.data.repository.MediaMutationResult
@@ -70,6 +72,7 @@ fun HwSelectionBar(
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     val handler = LocalMediaHandler.current
+    val eventHandler = com.dot.gallery.core.LocalEventHandler.current
     var tagging by remember { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
     val allTags by remember { repo.allTags() }.collectAsState(initial = emptyList())
@@ -210,6 +213,11 @@ fun HwSelectionBar(
                 }
                 BarAction("标签", picked.isNotEmpty()) { tagging = true }
                 BarAction("移动", picked.isNotEmpty()) { moving = true }
+                BarAction("随笔", picked.any { it.mimeType.startsWith("image/") }) {
+                    com.dot.gallery.app.presentation.journal.JournalDraft.photos = picked
+                    onDone()
+                    eventHandler.navigate(com.dot.gallery.core.presentation.util.Screen.JournalEditScreen.id(UUID.randomUUID().toString()))
+                }
                 BarAction("收藏", picked.isNotEmpty()) {
                     scope.launch { handler.toggleFavorite(favoriteRequest, picked, true); onDone() }
                 }
@@ -229,8 +237,8 @@ private fun BarAction(label: String, enabled: Boolean, danger: Boolean = false, 
     Text(
         label,
         color = when { !enabled -> colors.outline; danger -> colors.primary; else -> colors.onBackground },
-        fontFamily = FontFamily.Serif, fontSize = 15.sp, letterSpacing = 0.15.em,
-        modifier = Modifier.clickable(enabled = enabled, onClick = onClick).padding(horizontal = 11.dp, vertical = 14.dp)
+        fontFamily = FontFamily.Serif, fontSize = 15.sp, letterSpacing = 0.1.em,
+        modifier = Modifier.clickable(enabled = enabled, onClick = onClick).padding(horizontal = 8.dp, vertical = 14.dp)
     )
 }
 

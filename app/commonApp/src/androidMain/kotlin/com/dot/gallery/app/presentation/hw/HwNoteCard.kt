@@ -328,7 +328,7 @@ private fun HwNoteInk(media: UriMedia, repo: HwNotesRepository, note: PhotoNoteE
     var replay by remember(media.id) { mutableStateOf(0) }
     LaunchedEffect(media.id, note?.inkId, note?.updatedAt) {
         val ink = repo.inkOf(note)
-        strokes = ink?.let { runCatching { com.dot.gallery.data.InkCodec.decode(it.strokes) }.getOrNull() }.orEmpty()
+        strokes = ink?.let { runCatching { com.dot.gallery.data.InkCodec.decode(it.strokes, it.color) }.getOrNull() }.orEmpty()
         colorCode = ink?.color ?: 0
     }
     if (strokes.isEmpty()) {
@@ -338,7 +338,7 @@ private fun HwNoteInk(media: UriMedia, repo: HwNotesRepository, note: PhotoNoteE
         )
     } else {
         Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-            HwInkView(strokes, colorCode, Modifier.fillMaxWidth().clickable { replay++ }, replay)
+            HwInkView(strokes, Modifier.fillMaxWidth().clickable { replay++ }, replay)
             Text(
                 "改", color = colors.onSurfaceVariant, fontSize = 12.sp, letterSpacing = 0.12.em,
                 modifier = Modifier.align(Alignment.End).clickable { editing = true }.padding(start = 12.dp, top = 6.dp, bottom = 2.dp)

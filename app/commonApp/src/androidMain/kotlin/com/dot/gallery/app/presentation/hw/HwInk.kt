@@ -57,7 +57,7 @@ import com.dot.gallery.data.InkStroke
  * 手写：
  * - 写字板固定 3:2；点坐标归一化到 0..1，笔宽以“写字板宽 = 360 单位”计，所以缩小显示时比例不变；
  * - 手指写：写得快笔画细、写得慢笔画粗；手写笔：按压力定粗细；
- * - 颜色只存代号（0 = 墨色，1 = 主题强调色），换主题时笔迹跟着变。
+ * - 每一笔记着自己的颜色代号（0 = 墨色，1 = 主题强调色），换主题时笔迹跟着变。
  */
 const val INK_ASPECT = 1.5f
 private const val REF_W = 360f
@@ -68,12 +68,13 @@ private const val W_MAX = 3.6f
 fun inkColor(code: Int): Color = if (code == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
 
 /** 画出前 [upTo] 个点（用于回放）。 */
-fun DrawScope.drawInk(strokes: List<InkStroke>, color: Color, upTo: Int = Int.MAX_VALUE) {
+fun DrawScope.drawInk(strokes: List<InkStroke>, colorOf: (Int) -> Color, upTo: Int = Int.MAX_VALUE) {
     val scale = size.width / REF_W
     var drawn = 0
     for (s in strokes) {
         val pts = s.points
         if (pts.isEmpty()) continue
+        val color = colorOf(s.color)
         if (drawn >= upTo) return
         val first = pts[0]
         if (pts.size == 1) {
@@ -96,8 +97,9 @@ fun DrawScope.drawInk(strokes: List<InkStroke>, color: Color, upTo: Int = Int.MA
 
 /** 只读的笔迹。[replay] 每加一，就按书写顺序重写一遍。 */
 @Composable
-fun HwInkView(strokes: List<InkStroke>, colorCode: Int, modifier: Modifier = Modifier, replay: Int = 0) {
-    val color = inkColor(colorCode)
+fun HwInkView(strokes: List<InkStroke>, modifier: Modifier = Modifier, replay: Int = 0) {
+    val ink = inkColor(0); val accent = inkColor(1)
+    val color: (Int) -> Color = { if (it == 1) accent else ink }
     val total = remember(strokes) { strokes.sumOf { it.points.size } }
     val progress = remember { Animatable(1f) }
     LaunchedEffect(replay) {
@@ -119,7 +121,9 @@ fun HwInkPad(initial: List<InkStroke>, initialColor: Int, onCancel: () -> Unit, 
     val strokes = remember { mutableStateListOf<InkStroke>().apply { addAll(initial) } }
     val current = remember { mutableStateListOf<InkPoint>() }
     var colorCode by remember { mutableIntStateOf(initialColor) }
-    val color = inkColor(colorCode)
+    val ink = inkColor(0); val accent = inkColor(1)
+    val color: (Int) -> Color = { if (it == 1) accent else ink }
+    val penColor by androidx.compose.runtime.rememberUpdatedState(colorCode)
     BackHandler { onCancel() }
 
     Column(Modifier.fillMaxSize().background(colors.background).statusBarsPadding().navigationBarsPadding()) {
@@ -165,13 +169,13 @@ fun HwInkPad(initial: List<InkStroke>, initialColor: Int, onCancel: () -> Unit, 
                                 }
                                 c.consume()
                             }
-                            if (current.isNotEmpty()) strokes.add(InkStroke(current.toList()))
+                            if (current.isNotEmpty()) strokes.add(InkStroke(current.toList(), penColor))
                             current.clear()
                         }
                     }
             ) {
                 drawInk(strokes, color)
-                if (current.isNotEmpty()) drawInk(listOf(InkStroke(current)), color)
+                if (current.isNotEmpty()) drawInk(listOf(InkStroke(current, colorCode)), color)
             }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {

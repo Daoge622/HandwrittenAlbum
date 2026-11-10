@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.exifinterface.media.ExifInterface
 import com.dot.gallery.core.LocalEventHandler
+import com.dot.gallery.core.navigate
 import com.dot.gallery.core.toggleNavigationBar
 import com.dot.gallery.domain.model.UriMedia
 import com.dot.gallery.domain.model.definedTimestamp
@@ -396,7 +397,8 @@ private fun HwViewerOverlay(state: HwViewerState) {
             Text("${date.year}.${date.monthValue}.${"%02d".format(date.dayOfMonth)}", color = Color.White, fontSize = 13.sp, letterSpacing = 0.15.em)
             Text(m.albumLabel, color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, letterSpacing = 0.15.em)
         }
-        Row(
+        // 附言卡升起后操作条完全移除，否则它虽然透明却还盖在卡片上、会抢走点击
+        if (uiAlpha > 0.05f) Row(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(bottom = 18.dp)
                 .graphicsLayer { alpha = uiAlpha },
             horizontalArrangement = Arrangement.Center
@@ -437,6 +439,13 @@ private fun HwViewerOverlay(state: HwViewerState) {
                             val n = notesRepo.noteFlow(m.id).first()
                             if (n != null) HwShareCard.share(context, m, n.text, parseFields(n.fieldsJson), dark)
                         }
+                    })
+                    if (!m.isVideo) androidx.compose.material3.DropdownMenuItem(text = { Text("写进随笔") }, onClick = {
+                        moreOpen = false
+                        com.dot.gallery.app.presentation.journal.JournalDraft.photos = listOf(m)
+                        state.visible = false
+                        eventHandler.toggleNavigationBar(true)
+                        eventHandler.navigate(com.dot.gallery.core.presentation.util.Screen.JournalEditScreen.id(java.util.UUID.randomUUID().toString()))
                     })
                     if (!m.isVideo) androidx.compose.material3.DropdownMenuItem(text = { Text("设为壁纸 / 联系人头像") }, onClick = {
                         moreOpen = false

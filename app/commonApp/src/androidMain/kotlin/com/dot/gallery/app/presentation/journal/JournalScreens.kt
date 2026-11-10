@@ -75,6 +75,9 @@ private fun paragraphText(payload: String): String? = runCatching { org.json.JSO
 /** 随笔里的一张照片：MediaStore id + uri + 原始宽高（用于按比例排版）。 */
 data class JournalPhoto(val id: Long, val uri: String, val w: Int, val h: Int)
 
+/** 从相册带进新随笔的照片（多选条的“随笔”、查看器的“写进随笔”），编辑器打开时取走。 */
+object JournalDraft { var photos: List<com.dot.gallery.domain.model.UriMedia> = emptyList() }
+
 sealed class EditorBlock {
     abstract val key: String
     data class Text(override val key: String = UUID.randomUUID().toString(), val text: String = "") : EditorBlock()
@@ -89,7 +92,8 @@ private fun inkJson(b: EditorBlock.Ink): String = org.json.JSONObject()
 
 private fun inkOf(payload: String): EditorBlock.Ink? = runCatching {
     val o = org.json.JSONObject(payload)
-    EditorBlock.Ink(strokes = com.dot.gallery.data.InkCodec.decode(android.util.Base64.decode(o.getString("ink"), android.util.Base64.NO_WRAP)), color = o.optInt("color"))
+    val color = o.optInt("color")
+    EditorBlock.Ink(strokes = com.dot.gallery.data.InkCodec.decode(android.util.Base64.decode(o.getString("ink"), android.util.Base64.NO_WRAP), color), color = color)
 }.getOrNull()
 
 private fun photosJson(list: List<JournalPhoto>): String {

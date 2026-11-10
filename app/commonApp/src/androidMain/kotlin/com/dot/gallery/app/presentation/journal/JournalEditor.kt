@@ -109,12 +109,16 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
     var focused by remember { mutableStateOf(0) }
     var picking by remember { mutableStateOf(false) }
     var inking by remember { mutableStateOf(false) }
+    var existing by remember { mutableStateOf(false) }
+    var deleteArmed by remember { mutableStateOf(false) }
+    var deleted by remember { mutableStateOf(false) }
     var armed by remember { mutableStateOf<Pair<String, Long>?>(null) }
     val firstFocus = remember { FocusRequester() }
 
     LaunchedEffect(entryId) {
         val e = vm.entry(entryId)
         if (e != null) {
+            existing = true
             title = e.title
             createdAt = e.createdAt
             weather = e.weather.orEmpty(); mood = e.mood.orEmpty(); place = e.placeName.orEmpty()
@@ -125,10 +129,10 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
     }
 
     fun snapshot() = blocks.toList()
-    fun saveAndExit() { vm.save(entryId, createdAt, title, snapshot(), weather, mood, place); eventHandler.navigateUp() }
+    fun saveAndExit() { if (!deleted) vm.save(entryId, createdAt, title, snapshot(), weather, mood, place); eventHandler.navigateUp() }
     BackHandler(enabled = !picking && !inking) { saveAndExit() }
     // 切到后台也存一份，免得被系统回收后丢字
-    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { if (loaded) vm.save(entryId, createdAt, title, snapshot(), weather, mood, place) }
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { if (loaded && !deleted) vm.save(entryId, createdAt, title, snapshot(), weather, mood, place) }
 
     fun insertPhotos(list: List<UriMedia>) {
         if (list.isEmpty()) return
@@ -155,6 +159,16 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
         armed = null
     }
 
+    // 从相册带过来的照片：新随笔打开后直接放进去
+    LaunchedEffect(loaded) {
+        if (loaded && !existing) {
+            val draft = JournalDraft.photos
+            JournalDraft.photos = emptyList()
+            insertPhotos(draft.filter { it.mimeType.startsWith("image/") }.take(9))
+        }
+    }
+    LaunchedEffect(deleteArmed) { if (deleteArmed) { kotlinx.coroutines.delay(3000); deleteArmed = false } }
+
     fun removePhoto(blockKey: String, id: Long) {
         val next = blocks.map { b -> if (b is EditorBlock.Photos && b.key == blockKey) b.copy(photos = b.photos.filterNot { it.id == id }) else b }
         blocks.clear(); blocks.addAll(normalize(next))
@@ -170,6 +184,13 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
                 Text("完成", color = colors.primary, fontWeight = FontWeight.SemiBold, letterSpacing = 0.15.em,
                     modifier = Modifier.clickable { saveAndExit() }.padding(10.dp))
                 Spacer(Modifier.weight(1f))
+                if (existing) Text(
+                    if (deleteArmed) "再点一次删除" else "删除",
+                    color = if (deleteArmed) colors.primary else colors.onSurfaceVariant, fontSize = 13.sp, letterSpacing = 0.12.em,
+                    modifier = Modifier.clickable {
+                        if (deleteArmed) { deleted = true; vm.delete(entryId); eventHandler.navigateUp() } else deleteArmed = true
+                    }.padding(10.dp)
+                )
                 Text("${day.year} · ${day.monthValue} 月 ${day.dayOfMonth} 日", style = MaterialTheme.typography.labelMedium,
                     color = colors.onSurfaceVariant, modifier = Modifier.padding(end = 10.dp))
             }
@@ -226,7 +247,7 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
                                     onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); armed = b.key to -1L }
                                 )
                             ) {
-                                com.dot.gallery.app.presentation.hw.HwInkView(b.strokes, b.color, Modifier.fillMaxWidth(), replay)
+                                com.dot.gallery.app.presentation.hw.HwInkView(b.strokes, Modifier.fillMaxWidth(), replay)
                                 if (isArmed) Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.45f)), contentAlignment = Alignment.Center) {
                                     Text("移除", color = Color.White, fontFamily = FontFamily.Serif, fontSize = 15.sp, letterSpacing = 0.2.em)
                                 }

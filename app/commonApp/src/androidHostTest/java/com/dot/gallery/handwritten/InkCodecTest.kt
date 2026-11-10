@@ -66,4 +66,20 @@ class InkCodecTest {
     fun rejectsUnknownVersion() {
         InkCodec.decode(byteArrayOf(9, 0))
     }
+
+    @Test
+    fun strokeColors_roundTrip() {
+        val input = listOf(InkStroke(listOf(InkPoint(0.1f, 0.2f, 2f, 0)), 0), InkStroke(listOf(InkPoint(0.3f, 0.4f, 2f, 5)), 1))
+        assertEquals(listOf(0, 1), InkCodec.decode(InkCodec.encode(input)).map { it.color })
+    }
+
+    @Test
+    fun v1Data_stillReadable_usesDefaultColor() {
+        // v1：版本 1，1 笔，1 个点（x=0, y=0, w=200, Δt=0），没有颜色字节
+        val v1 = byteArrayOf(1, 1, 1, 0, 0, 0, 0, 200.toByte(), 0, 0)
+        val out = InkCodec.decode(v1, defaultColor = 1)
+        assertEquals(1, out.size)
+        assertEquals(1, out[0].color)
+        assertEquals(2f, out[0].points[0].w, 0.001f)
+    }
 }

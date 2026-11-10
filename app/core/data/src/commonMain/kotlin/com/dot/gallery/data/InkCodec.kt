@@ -10,18 +10,19 @@ import kotlin.math.roundToInt
 /** 手写笔迹的一个采样点。x、y 为 0..1 归一化坐标；w 为笔画宽度（dp）；t 为相对笔画开始的毫秒数。 */
 data class InkPoint(val x: Float, val y: Float, val w: Float, val t: Int)
 
-data class InkStroke(val points: List<InkPoint>)
+/** 一笔。color 是颜色代号（0 = 墨色，1 = 强调色）。 */
+data class InkStroke(val points: List<InkPoint>, val color: Int = 0)
 
 /**
  * 笔迹的紧凑二进制编码（存进 ink_drawing.strokes）。
  *
- * 格式 v1：
+ * 格式 v2（v1 没有“颜色”这一字节，整幅一个颜色，仍可读）：
  *   [版本 1 字节] [笔画数 varint]
- *   每个笔画：[点数 varint]，每个点：x u16、y u16（0..65535 对应 0..1）、w u16（宽度 × 100）、Δt varint（毫秒）
+ *   每个笔画：[点数 varint] [颜色 1 字节]，每个点：x u16、y u16（0..65535 对应 0..1）、w u16（宽度 × 100）、Δt varint（毫秒）
  * 一个点约 7–8 字节；一句手写光注一般几 KB。
  */
 object InkCodec {
-    private const val VERSION: Int = 1
+    private const val VERSION: Int = 2
     private const val Q = 65535f
 
     fun encode(strokes: List<InkStroke>): ByteArray {
@@ -30,6 +31,7 @@ object InkCodec {
         out.varint(strokes.size)
         for (s in strokes) {
             out.varint(s.points.size)
+            out.byte(s.color and 0xFF)
             var lastT = 0
             for (p in s.points) {
                 out.u16((p.x.coerceIn(0f, 1f) * Q).roundToInt())
@@ -42,14 +44,16 @@ object InkCodec {
         return out.toByteArray()
     }
 
-    fun decode(bytes: ByteArray): List<InkStroke> {
+    /** [defaultColor]：v1 数据没有逐笔颜色时用它。 */
+    fun decode(bytes: ByteArray, defaultColor: Int = 0): List<InkStroke> {
         if (bytes.isEmpty()) return emptyList()
         val r = Reader(bytes)
         val version = r.byte()
-        require(version == VERSION) { "不支持的笔迹格式版本：$version" }
+        require(version == 1 || version == VERSION) { "不支持的笔迹格式版本：$version" }
         val n = r.varint()
         return List(n) {
             val count = r.varint()
+            val color = if (version >= 2) r.byte() else defaultColor
             var t = 0
             InkStroke(List(count) {
                 val x = r.u16() / Q
@@ -57,7 +61,7 @@ object InkCodec {
                 val w = r.u16() / 100f
                 t += r.varint()
                 InkPoint(x, y, w, t)
-            })
+            }, color)
         }
     }
 
