@@ -79,7 +79,18 @@ sealed class EditorBlock {
     abstract val key: String
     data class Text(override val key: String = UUID.randomUUID().toString(), val text: String = "") : EditorBlock()
     data class Photos(override val key: String = UUID.randomUUID().toString(), val photos: List<JournalPhoto>) : EditorBlock()
+    data class Ink(override val key: String = UUID.randomUUID().toString(), val strokes: List<com.dot.gallery.data.InkStroke>, val color: Int) : EditorBlock()
 }
+
+// 手写块的 payload：{"ink": base64(InkCodec), "color": 0|1}
+private fun inkJson(b: EditorBlock.Ink): String = org.json.JSONObject()
+    .put("ink", android.util.Base64.encodeToString(com.dot.gallery.data.InkCodec.encode(b.strokes), android.util.Base64.NO_WRAP))
+    .put("color", b.color).toString()
+
+private fun inkOf(payload: String): EditorBlock.Ink? = runCatching {
+    val o = org.json.JSONObject(payload)
+    EditorBlock.Ink(strokes = com.dot.gallery.data.InkCodec.decode(android.util.Base64.decode(o.getString("ink"), android.util.Base64.NO_WRAP)), color = o.optInt("color"))
+}.getOrNull()
 
 private fun photosJson(list: List<JournalPhoto>): String {
     val arr = org.json.JSONArray()
@@ -104,7 +115,8 @@ fun normalize(list: List<EditorBlock>): List<EditorBlock> {
             b is EditorBlock.Photos && b.photos.isEmpty() -> Unit
             b is EditorBlock.Text && last is EditorBlock.Text ->
                 out[out.lastIndex] = last.copy(text = listOf(last.text, b.text).filter { it.isNotBlank() }.joinToString("\n\n"))
-            b is EditorBlock.Photos && (last == null || last is EditorBlock.Photos) -> { out += EditorBlock.Text(); out += b }
+            b is EditorBlock.Ink && b.strokes.isEmpty() -> Unit
+            b !is EditorBlock.Text && (last == null || last !is EditorBlock.Text) -> { out += EditorBlock.Text(); out += b }
             else -> out += b
         }
     }
@@ -137,6 +149,7 @@ class JournalViewModel(private val dao: JournalDao) : ViewModel() {
                     else out += EditorBlock.Text(text = t)
                 }
                 JournalBlockType.IMAGES -> out += EditorBlock.Photos(photos = photosOf(b.payloadJson))
+                JournalBlockType.INK -> inkOf(b.payloadJson)?.let { out += it }
             }
         }
         return normalize(out)
@@ -147,7 +160,7 @@ class JournalViewModel(private val dao: JournalDao) : ViewModel() {
         dao.blocks(id).firstOrNull { it.type == JournalBlockType.IMAGES }?.let { photosOf(it.payloadJson).firstOrNull() }
 
     fun save(id: String, createdAt: Long?, title: String, blocks: List<EditorBlock>, then: () -> Unit = {}) {
-        val hasContent = title.isNotBlank() || blocks.any { (it is EditorBlock.Text && it.text.isNotBlank()) || (it is EditorBlock.Photos && it.photos.isNotEmpty()) }
+        val hasContent = title.isNotBlank() || blocks.any { (it is EditorBlock.Text && it.text.isNotBlank()) || (it is EditorBlock.Photos && it.photos.isNotEmpty()) || it is EditorBlock.Ink }
         if (!hasContent) { then(); return }
         viewModelScope.launch {
             val now = System.currentTimeMillis()
@@ -160,6 +173,8 @@ class JournalViewModel(private val dao: JournalDao) : ViewModel() {
                     }
                     is EditorBlock.Photos -> if (b.photos.isNotEmpty())
                         rows += JournalBlockEntity(id = "$id-${rows.size}", entryId = id, position = rows.size, type = JournalBlockType.IMAGES, payloadJson = photosJson(b.photos))
+                    is EditorBlock.Ink -> if (b.strokes.isNotEmpty())
+                        rows += JournalBlockEntity(id = "$id-${rows.size}", entryId = id, position = rows.size, type = JournalBlockType.INK, payloadJson = inkJson(b))
                 }
             }
             dao.save(entry, rows)

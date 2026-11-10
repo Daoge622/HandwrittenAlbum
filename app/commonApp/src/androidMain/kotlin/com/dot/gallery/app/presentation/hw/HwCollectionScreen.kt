@@ -166,7 +166,7 @@ fun HwCollectionScreen(kind: HwCollection, mediaState: State<MediaState<UriMedia
                             scope.launch { if (handler.deleteMedia(deleteRequest, picked) == MediaMutationResult.COMPLETED) selected.clear() }
                         }
                     } else {
-                        Action("取消收藏") { scope.launch { handler.toggleFavorite(unfavRequest, picked, false) } }
+                        Action("取消收藏") { scope.launch { handler.toggleFavorite(unfavRequest, picked, false); selected.clear() } }
                         Action("分享") {
                             val uris = ArrayList(picked.map { it.getUri() })
                             val i = android.content.Intent(android.content.Intent.ACTION_SEND_MULTIPLE).apply {

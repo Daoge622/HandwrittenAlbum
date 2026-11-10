@@ -128,7 +128,7 @@ fun HwSelectionBar(
                 }
                 BarAction("标签", picked.isNotEmpty()) { tagging = true }
                 BarAction("收藏", picked.isNotEmpty()) {
-                    scope.launch { handler.toggleFavorite(favoriteRequest, picked, true) }
+                    scope.launch { handler.toggleFavorite(favoriteRequest, picked, true); onDone() }
                 }
                 BarAction("删除", picked.isNotEmpty(), danger = true) {
                     scope.launch {

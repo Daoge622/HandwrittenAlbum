@@ -234,6 +234,10 @@ fun HwNoteCard(media: UriMedia, modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp)
             )
 
+            // 手写
+            HorizontalDivider(color = colors.outlineVariant, thickness = 0.5.dp)
+            HwNoteInk(media, repo, note)
+
             // 标签
             HorizontalDivider(color = colors.outlineVariant, thickness = 0.5.dp)
             HwTagRow(media, repo)
@@ -308,6 +312,47 @@ fun HwNoteCard(media: UriMedia, modifier: Modifier = Modifier) {
                     )
                 }
             }
+        }
+    }
+}
+
+
+/** 附言卡里的手写：没有时是一行“＋ 手写”；有了就显示笔迹，点一下重写一遍，“改”进写字板。 */
+@Composable
+private fun HwNoteInk(media: UriMedia, repo: HwNotesRepository, note: PhotoNoteEntity?) {
+    val colors = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
+    var strokes by remember(media.id) { mutableStateOf<List<com.dot.gallery.data.InkStroke>>(emptyList()) }
+    var colorCode by remember(media.id) { mutableStateOf(0) }
+    var editing by remember { mutableStateOf(false) }
+    var replay by remember(media.id) { mutableStateOf(0) }
+    LaunchedEffect(media.id, note?.inkId, note?.updatedAt) {
+        val ink = repo.inkOf(note)
+        strokes = ink?.let { runCatching { com.dot.gallery.data.InkCodec.decode(it.strokes) }.getOrNull() }.orEmpty()
+        colorCode = ink?.color ?: 0
+    }
+    if (strokes.isEmpty()) {
+        Text(
+            "＋ 手写", color = colors.primary, fontSize = 14.sp, letterSpacing = 0.1.em,
+            modifier = Modifier.clickable { editing = true }.padding(vertical = 14.dp)
+        )
+    } else {
+        Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+            HwInkView(strokes, colorCode, Modifier.fillMaxWidth().clickable { replay++ }, replay)
+            Text(
+                "改", color = colors.onSurfaceVariant, fontSize = 12.sp, letterSpacing = 0.12.em,
+                modifier = Modifier.align(Alignment.End).clickable { editing = true }.padding(start = 12.dp, top = 6.dp, bottom = 2.dp)
+            )
+        }
+    }
+    if (editing) androidx.compose.ui.window.Dialog(
+        onDismissRequest = { editing = false },
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
+        HwInkPad(strokes, colorCode, onCancel = { editing = false }) { s, c ->
+            editing = false
+            strokes = s; colorCode = c
+            scope.launch { repo.saveInk(media, note, s, c) }
         }
     }
 }

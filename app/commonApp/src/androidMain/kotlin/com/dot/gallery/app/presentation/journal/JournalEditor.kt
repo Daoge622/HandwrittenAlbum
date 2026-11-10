@@ -98,12 +98,14 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
     var title by remember { mutableStateOf("") }
     val blocks = remember { mutableStateListOf<EditorBlock>(EditorBlock.Text()) }
     var createdAt by remember { mutableStateOf<Long?>(null) }
     var loaded by remember { mutableStateOf(false) }
     var focused by remember { mutableStateOf(0) }
     var picking by remember { mutableStateOf(false) }
+    var inking by remember { mutableStateOf(false) }
     var armed by remember { mutableStateOf<Pair<String, Long>?>(null) }
     val firstFocus = remember { FocusRequester() }
 
@@ -120,7 +122,7 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
 
     fun snapshot() = blocks.toList()
     fun saveAndExit() { vm.save(entryId, createdAt, title, snapshot()); eventHandler.navigateUp() }
-    BackHandler(enabled = !picking) { saveAndExit() }
+    BackHandler(enabled = !picking && !inking) { saveAndExit() }
     // 切到后台也存一份，免得被系统回收后丢字
     LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { if (loaded) vm.save(entryId, createdAt, title, snapshot()) }
 
@@ -134,6 +136,19 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
             val next = blocks.toMutableList().apply { add(at + 1, EditorBlock.Photos(photos = photos)) }
             blocks.clear(); blocks.addAll(normalize(next))
         }
+    }
+
+    fun insertInk(strokes: List<com.dot.gallery.data.InkStroke>, color: Int) {
+        if (strokes.isEmpty()) return
+        val at = focused.coerceIn(0, blocks.lastIndex)
+        val next = blocks.toMutableList().apply { add(at + 1, EditorBlock.Ink(strokes = strokes, color = color)) }
+        blocks.clear(); blocks.addAll(normalize(next))
+    }
+
+    fun removeBlock(key: String) {
+        val next = blocks.filterNot { it.key == key }
+        blocks.clear(); blocks.addAll(normalize(next))
+        armed = null
     }
 
     fun removePhoto(blockKey: String, id: Long) {
@@ -193,6 +208,21 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
                             onRemove = { removePhoto(b.key, it) },
                             onDisarm = { armed = null }
                         )
+                        is EditorBlock.Ink -> {
+                            val isArmed = armed?.first == b.key
+                            var replay by remember(b.key) { mutableStateOf(0) }
+                            Box(
+                                Modifier.fillMaxWidth().padding(vertical = 6.dp).combinedClickable(
+                                    onClick = { if (isArmed) removeBlock(b.key) else if (armed != null) armed = null else replay++ },
+                                    onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); armed = b.key to -1L }
+                                )
+                            ) {
+                                com.dot.gallery.app.presentation.hw.HwInkView(b.strokes, b.color, Modifier.fillMaxWidth(), replay)
+                                if (isArmed) Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.45f)), contentAlignment = Alignment.Center) {
+                                    Text("移除", color = Color.White, fontFamily = FontFamily.Serif, fontSize = 15.sp, letterSpacing = 0.2.em)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -200,6 +230,8 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("＋ 照片", color = colors.primary, fontFamily = FontFamily.Serif, fontSize = 15.sp, letterSpacing = 0.12.em,
                     modifier = Modifier.clickable { picking = true }.padding(horizontal = 10.dp, vertical = 12.dp))
+                Text("＋ 手写", color = colors.primary, fontFamily = FontFamily.Serif, fontSize = 15.sp, letterSpacing = 0.12.em,
+                    modifier = Modifier.clickable { inking = true }.padding(horizontal = 10.dp, vertical = 12.dp))
                 Spacer(Modifier.weight(1f))
                 val count = blocks.sumOf { if (it is EditorBlock.Text) it.text.count { c -> !c.isWhitespace() } else 0 }
                 if (count > 0) Text("$count 字", style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, modifier = Modifier.padding(end = 10.dp))
@@ -212,6 +244,9 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
             exit = slideOutVertically(spring(dampingRatio = 0.9f, stiffness = 520f)) { it / 3 } + fadeOut(),
         ) {
             PhotoPicker(library.value.media, onCancel = { picking = false }, onPick = { picking = false; insertPhotos(it) })
+        }
+        if (inking) com.dot.gallery.app.presentation.hw.HwInkPad(emptyList(), 0, onCancel = { inking = false }) { st, c ->
+            inking = false; insertInk(st, c)
         }
     }
 }

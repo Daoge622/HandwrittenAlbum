@@ -66,7 +66,7 @@ class HwNotesRepository(private val db: InternalDatabase) {
     /** 保存（或清空）附言。文字和栏目都为空时删除这条附言。内容变化后“已写入照片”标记失效。 */
     suspend fun save(m: UriMedia, existing: PhotoNoteEntity?, text: String, fields: List<NoteField>) {
         val cleanFields = fields.filter { it.key.isNotBlank() || it.value.isNotBlank() }
-        if (text.isBlank() && cleanFields.isEmpty()) {
+        if (text.isBlank() && cleanFields.isEmpty() && existing?.inkId == null) {
             existing?.let { notes.delete(it.id) }
             return
         }
@@ -79,11 +79,40 @@ class HwNotesRepository(private val db: InternalDatabase) {
                 id = existing?.id ?: UUID.randomUUID().toString(),
                 identityId = existing?.identityId ?: identityFor(m),
                 text = text,
+                inkId = existing?.inkId,
                 createdAt = existing?.createdAt ?: now,
                 updatedAt = now,
                 writtenToFile = false,
                 writtenAt = existing?.writtenAt,
                 fieldsJson = fieldsJson,
+            )
+        )
+    }
+
+    // ---- 手写 ----
+    suspend fun inkOf(note: PhotoNoteEntity?): com.dot.gallery.data.entity.InkDrawingEntity? = note?.inkId?.let { notes.ink(it) }
+
+    /** 保存附言里的手写；笔迹为空表示删掉手写（附言也空了就整条删除）。 */
+    suspend fun saveInk(m: UriMedia, existing: PhotoNoteEntity?, strokes: List<com.dot.gallery.data.InkStroke>, colorCode: Int) {
+        val now = System.currentTimeMillis()
+        if (strokes.isEmpty()) {
+            val n = existing ?: return
+            notes.deleteInkOf("note", n.id)
+            if (n.text.isBlank() && parseFields(n.fieldsJson).isEmpty()) notes.delete(n.id)
+            else notes.upsert(n.copy(inkId = null, updatedAt = now))
+            return
+        }
+        val noteId = existing?.id ?: UUID.randomUUID().toString()
+        val inkId = existing?.inkId ?: UUID.randomUUID().toString()
+        val base = existing ?: PhotoNoteEntity(
+            id = noteId, identityId = identityFor(m), text = "", createdAt = now, updatedAt = now,
+            writtenToFile = false, writtenAt = null, fieldsJson = "[]"
+        )
+        notes.upsert(base.copy(inkId = inkId, updatedAt = now))
+        notes.upsertInk(
+            com.dot.gallery.data.entity.InkDrawingEntity(
+                id = inkId, ownerType = "note", ownerId = noteId,
+                strokes = com.dot.gallery.data.InkCodec.encode(strokes), color = colorCode, baseWidth = 2.6f, updatedAt = now
             )
         )
     }
