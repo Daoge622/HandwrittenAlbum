@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.imePadding
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.dot.gallery.core.LocalMediaHandler
 import com.dot.gallery.core.ui.util.rememberActivityResult
+import com.dot.gallery.core.ui.util.writeRequest
 import com.dot.gallery.data.repository.MediaMutationResult
 import com.dot.gallery.domain.model.UriMedia
 import com.dot.gallery.domain.util.getUri
@@ -62,6 +64,7 @@ fun HwSelectionBar(
     repo: HwNotesRepository,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    albums: List<Pair<String, String>> = emptyList(),
 ) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
@@ -72,6 +75,45 @@ fun HwSelectionBar(
     val allTags by remember { repo.allTags() }.collectAsState(initial = emptyList())
     val favoriteRequest = rememberActivityResult(onResultOk = { onDone() })
     val trashRequest = rememberActivityResult(onResultOk = { onDone() })
+
+    // ---- 移到 / 复制到相册 ----
+    var moving by remember { mutableStateOf(false) }
+    var copyMode by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    var newAlbum by remember { mutableStateOf("") }
+    var pendingDir by remember { mutableStateOf<String?>(null) }
+
+    fun doMove(dir: String) {
+        busy = true
+        scope.launch {
+            val target = dir.trimEnd('/')
+            val todo = picked.filter { it.path.substringBeforeLast('/') != target }
+            var failed = 0
+            todo.forEach { m ->
+                val ok = runCatching { handler.moveMedia(m, target) }.getOrDefault(false)
+                if (ok) android.media.MediaScannerConnection.scanFile(context, arrayOf(target + "/" + m.label), arrayOf(m.mimeType), null)
+                else failed++
+            }
+            context.contentResolver.notifyChange(android.provider.MediaStore.Files.getContentUri("external"), null)
+            busy = false; moving = false
+            if (failed > 0) android.widget.Toast.makeText(context, "有 $failed 张没能移动", android.widget.Toast.LENGTH_SHORT).show()
+            onDone()
+        }
+    }
+    val moveRequest = rememberActivityResult(onResultCanceled = { pendingDir = null }, onResultOk = { pendingDir?.let { doMove(it) }; pendingDir = null })
+
+    fun sendTo(dir: String) {
+        if (busy || picked.isEmpty()) return
+        if (copyMode) {
+            scope.launch {
+                picked.forEach { handler.copyMedia(it, dir) }
+                moving = false; onDone()
+            }
+        } else {
+            val req = picked.writeRequest(context.contentResolver)
+            if (req == null) doMove(dir) else { pendingDir = dir; moveRequest.launch(req) }
+        }
+    }
 
     fun addTag(name: String) {
         if (name.isBlank()) return
@@ -89,7 +131,47 @@ fun HwSelectionBar(
             .imePadding()
     ) {
         HorizontalDivider(color = colors.outline, thickness = 0.5.dp)
-        if (tagging) {
+        if (moving) {
+            Column(Modifier.padding(horizontal = 24.dp, vertical = 14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    listOf(false to "移动", true to "复制").forEach { (c, label) ->
+                        Text(
+                            label, fontFamily = FontFamily.Serif, fontSize = 15.sp, letterSpacing = 0.12.em,
+                            color = if (copyMode == c) colors.onBackground else colors.outline,
+                            modifier = Modifier.clickable { copyMode = c }.padding(end = 18.dp, top = 6.dp, bottom = 6.dp)
+                        )
+                    }
+                    Text("${picked.size} 张", fontSize = 12.sp, letterSpacing = 0.12.em, color = colors.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    Text(if (busy) "处理中…" else "取消", color = colors.onSurfaceVariant, fontSize = 14.sp,
+                        modifier = Modifier.clickable(enabled = !busy) { moving = false }.padding(8.dp))
+                }
+                Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    BasicTextField(
+                        value = newAlbum, onValueChange = { v -> newAlbum = v.filterNot { it in "/\\:*?\"<>|" }.take(40) }, singleLine = true,
+                        textStyle = TextStyle(fontFamily = FontFamily.Serif, fontSize = 16.sp, color = colors.onBackground),
+                        cursorBrush = SolidColor(colors.primary),
+                        decorationBox = { inner -> Box { if (newAlbum.isEmpty()) Text("新相册的名字", fontSize = 16.sp, color = colors.outline); inner() } },
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (newAlbum.isNotBlank()) Text(
+                        "新建", color = colors.primary, fontSize = 14.sp,
+                        modifier = Modifier.clickable {
+                            sendTo(android.os.Environment.getExternalStorageDirectory().absolutePath + "/Pictures/" + newAlbum.trim())
+                        }.padding(8.dp)
+                    )
+                }
+                HorizontalDivider(color = colors.outlineVariant, thickness = 0.5.dp)
+                androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxWidth().heightIn(max = 260.dp)) {
+                    items(albums.size) { i ->
+                        val (label, dir) = albums[i]
+                        Text(
+                            label, fontFamily = FontFamily.Serif, fontSize = 16.sp, color = colors.onBackground,
+                            modifier = Modifier.fillMaxWidth().clickable { sendTo(dir) }.padding(vertical = 13.dp)
+                        )
+                    }
+                }
+            }
+        } else if (tagging) {
             Column(Modifier.padding(horizontal = 24.dp, vertical = 14.dp)) {
                 Text("给 ${picked.size} 张照片加标签", fontSize = 12.sp, letterSpacing = 0.12.em, color = colors.onSurfaceVariant)
                 BasicTextField(
@@ -127,6 +209,7 @@ fun HwSelectionBar(
                     context.startActivity(Intent.createChooser(i, null))
                 }
                 BarAction("标签", picked.isNotEmpty()) { tagging = true }
+                BarAction("移动", picked.isNotEmpty()) { moving = true }
                 BarAction("收藏", picked.isNotEmpty()) {
                     scope.launch { handler.toggleFavorite(favoriteRequest, picked, true); onDone() }
                 }
@@ -147,7 +230,7 @@ private fun BarAction(label: String, enabled: Boolean, danger: Boolean = false, 
         label,
         color = when { !enabled -> colors.outline; danger -> colors.primary; else -> colors.onBackground },
         fontFamily = FontFamily.Serif, fontSize = 15.sp, letterSpacing = 0.15.em,
-        modifier = Modifier.clickable(enabled = enabled, onClick = onClick).padding(horizontal = 14.dp, vertical = 14.dp)
+        modifier = Modifier.clickable(enabled = enabled, onClick = onClick).padding(horizontal = 11.dp, vertical = 14.dp)
     )
 }
 

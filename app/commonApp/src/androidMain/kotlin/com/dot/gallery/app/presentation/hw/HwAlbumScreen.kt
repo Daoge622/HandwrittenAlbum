@@ -317,7 +317,8 @@ fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<Uri
         picked = shown.filter { it.id in selectedSet },
         repo = repo,
         onDone = { selected.clear() },
-        modifier = Modifier.align(Alignment.BottomCenter)
+        modifier = Modifier.align(Alignment.BottomCenter),
+        albums = albums.map { it.second.albumLabel to it.second.path.substringBeforeLast('/') }
     )
   }
 }
