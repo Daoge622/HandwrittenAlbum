@@ -102,6 +102,9 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
     var title by remember { mutableStateOf("") }
     val blocks = remember { mutableStateListOf<EditorBlock>(EditorBlock.Text()) }
     var createdAt by remember { mutableStateOf<Long?>(null) }
+    var weather by remember { mutableStateOf("") }
+    var mood by remember { mutableStateOf("") }
+    var place by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
     var focused by remember { mutableStateOf(0) }
     var picking by remember { mutableStateOf(false) }
@@ -114,6 +117,7 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
         if (e != null) {
             title = e.title
             createdAt = e.createdAt
+            weather = e.weather.orEmpty(); mood = e.mood.orEmpty(); place = e.placeName.orEmpty()
             blocks.clear(); blocks.addAll(vm.loadBlocks(entryId))
         }
         loaded = true
@@ -121,10 +125,10 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
     }
 
     fun snapshot() = blocks.toList()
-    fun saveAndExit() { vm.save(entryId, createdAt, title, snapshot()); eventHandler.navigateUp() }
+    fun saveAndExit() { vm.save(entryId, createdAt, title, snapshot(), weather, mood, place); eventHandler.navigateUp() }
     BackHandler(enabled = !picking && !inking) { saveAndExit() }
     // 切到后台也存一份，免得被系统回收后丢字
-    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { if (loaded) vm.save(entryId, createdAt, title, snapshot()) }
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { if (loaded) vm.save(entryId, createdAt, title, snapshot(), weather, mood, place) }
 
     fun insertPhotos(list: List<UriMedia>) {
         if (list.isEmpty()) return
@@ -179,8 +183,13 @@ fun JournalEditScreen(entryId: String, vm: JournalViewModel, library: State<Medi
                             decorationBox = { inner ->
                                 Box { if (title.isEmpty()) Text("标题", fontFamily = FontFamily.Serif, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = colors.outline); inner() }
                             },
-                            modifier = Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 16.dp)
+                            modifier = Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 10.dp)
                         )
+                        Row(Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
+                            MetaField(weather, "天气", Modifier.weight(1f)) { weather = it }
+                            MetaField(mood, "心情", Modifier.weight(1f)) { mood = it }
+                            MetaField(place, "地点", Modifier.weight(1.4f)) { place = it }
+                        }
                         HorizontalDivider(color = colors.outline, thickness = 0.5.dp)
                     }
                 }
@@ -372,3 +381,17 @@ private fun sizeOf(context: Context, uri: Uri): Pair<Int, Int> = runCatching {
         if (o == 90 || o == 270) h to w else w to h
     } ?: (0 to 0)
 }.getOrDefault(0 to 0)
+
+
+/** 标题下面的一小格：天气 / 心情 / 地点，想写什么写什么，不写就空着。 */
+@Composable
+private fun MetaField(value: String, hint: String, modifier: Modifier, onChange: (String) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    BasicTextField(
+        value = value, onValueChange = { onChange(it.take(20)) }, singleLine = true,
+        textStyle = TextStyle(fontSize = 13.sp, letterSpacing = 0.08.em, color = colors.onSurfaceVariant),
+        cursorBrush = SolidColor(colors.primary),
+        decorationBox = { inner -> Box { if (value.isEmpty()) Text(hint, fontSize = 13.sp, letterSpacing = 0.08.em, color = colors.outline); inner() } },
+        modifier = modifier.padding(end = 10.dp)
+    )
+}

@@ -159,12 +159,18 @@ class JournalViewModel(private val dao: JournalDao) : ViewModel() {
     suspend fun cover(id: String): JournalPhoto? =
         dao.blocks(id).firstOrNull { it.type == JournalBlockType.IMAGES }?.let { photosOf(it.payloadJson).firstOrNull() }
 
-    fun save(id: String, createdAt: Long?, title: String, blocks: List<EditorBlock>, then: () -> Unit = {}) {
+    fun save(
+        id: String, createdAt: Long?, title: String, blocks: List<EditorBlock>,
+        weather: String = "", mood: String = "", place: String = "", then: () -> Unit = {}
+    ) {
         val hasContent = title.isNotBlank() || blocks.any { (it is EditorBlock.Text && it.text.isNotBlank()) || (it is EditorBlock.Photos && it.photos.isNotEmpty()) || it is EditorBlock.Ink }
         if (!hasContent) { then(); return }
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            val entry = JournalEntryEntity(id = id, title = title.trim(), createdAt = createdAt ?: now, updatedAt = now)
+            val entry = JournalEntryEntity(
+                id = id, title = title.trim(), createdAt = createdAt ?: now, updatedAt = now,
+                weather = weather.trim().ifEmpty { null }, mood = mood.trim().ifEmpty { null }, placeName = place.trim().ifEmpty { null }
+            )
             val rows = mutableListOf<JournalBlockEntity>()
             blocks.forEach { b ->
                 when (b) {
@@ -260,6 +266,11 @@ fun JournalScreen(paddingValues: PaddingValues, vm: JournalViewModel) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        val meta = listOfNotNull(e.weather, e.mood, e.placeName).joinToString(" · ")
+                        if (meta.isNotEmpty()) Text(
+                            meta, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp)
+                        )
                         var excerpt by remember(e.id, e.updatedAt) { mutableStateOf("") }
                         var cover by remember(e.id, e.updatedAt) { mutableStateOf<JournalPhoto?>(null) }
                         LaunchedEffect(e.id, e.updatedAt) { excerpt = vm.excerpt(e.id); cover = vm.cover(e.id) }
