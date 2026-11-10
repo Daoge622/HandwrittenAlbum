@@ -362,7 +362,11 @@ fun NavigationComp(
                 route = Screen.TrashedScreen()
             ) {
                 val trashedMediaState = navViewModel.trashedMediaState.collectAsStateWithLifecycle()
-                TrashedGridScreen(
+                com.dot.gallery.app.presentation.hw.HwCollectionScreen(
+                    kind = com.dot.gallery.app.presentation.hw.HwCollection.Trash,
+                    mediaState = trashedMediaState,
+                )
+                if (false) TrashedGridScreen(
                     paddingValues = paddingValues,
                     mediaState = trashedMediaState,
                     metadataState = metadataState(),
@@ -376,7 +380,13 @@ fun NavigationComp(
             ) {
                 val favoritesMediaState =
                     navViewModel.favoriteMediaState.collectAsStateWithLifecycle()
-                FavoriteScreen(
+                com.dot.gallery.app.presentation.hw.HwViewerHost {
+                    com.dot.gallery.app.presentation.hw.HwCollectionScreen(
+                        kind = com.dot.gallery.app.presentation.hw.HwCollection.Favorites,
+                        mediaState = favoritesMediaState,
+                    )
+                }
+                if (false) FavoriteScreen(
                     paddingValues = paddingValues,
                     mediaState = favoritesMediaState,
                     metadataState = metadataState(),
@@ -1004,14 +1014,17 @@ fun NavigationComp(
                 route = Screen.JournalEditScreen.id(),
                 arguments = listOf(navArgument("entryId") { type = NavType.StringType })
             ) { entry ->
-                LaunchedEffect(Unit) { eventHandler.toggleNavigationBar(false) }
                 val vm = com.dot.gallery.injection.injectViewModel<com.dot.gallery.app.presentation.journal.JournalViewModel> {
                     com.dot.gallery.app.presentation.journal.JournalViewModel(database.getJournalDao())
                 }
-                com.dot.gallery.app.presentation.journal.JournalEditScreen(
-                    entryId = entry.arguments?.getString("entryId").orEmpty(),
-                    vm = vm
-                )
+                val pickState = timelineState()
+                com.dot.gallery.app.presentation.hw.HwViewerHost {
+                    com.dot.gallery.app.presentation.journal.JournalEditScreen(
+                        entryId = entry.arguments?.getString("entryId").orEmpty(),
+                        vm = vm,
+                        library = pickState,
+                    )
+                }
             }
             composable(
                 route = Screen.LibraryScreen()

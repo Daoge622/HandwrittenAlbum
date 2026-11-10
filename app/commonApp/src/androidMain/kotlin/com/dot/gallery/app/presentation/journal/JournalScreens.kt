@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -63,14 +64,53 @@ import java.time.ZoneId
 import java.util.UUID
 
 /*
- * 手写相册「随笔」：时间线列表 + 编辑器（第一版：标题 + 正文段落）。
+ * 手写相册「随笔」：时间线列表 + 编辑器（文字块 + 照片块）。
  * 数据存在 journal_entry / journal_block（见 HandwrittenEntities.kt）。
- * 图片块、手写块、天气心情卡片在后续轮次加入。
  */
 
 // 段落块的 payload：{"text": "..."}；用 Android 自带的 org.json，避免额外依赖
 private fun paragraphJson(text: String): String = org.json.JSONObject().put("text", text).toString()
 private fun paragraphText(payload: String): String? = runCatching { org.json.JSONObject(payload).optString("text") }.getOrNull()
+
+/** 随笔里的一张照片：MediaStore id + uri + 原始宽高（用于按比例排版）。 */
+data class JournalPhoto(val id: Long, val uri: String, val w: Int, val h: Int)
+
+sealed class EditorBlock {
+    abstract val key: String
+    data class Text(override val key: String = UUID.randomUUID().toString(), val text: String = "") : EditorBlock()
+    data class Photos(override val key: String = UUID.randomUUID().toString(), val photos: List<JournalPhoto>) : EditorBlock()
+}
+
+private fun photosJson(list: List<JournalPhoto>): String {
+    val arr = org.json.JSONArray()
+    list.forEach { arr.put(org.json.JSONObject().put("id", it.id).put("uri", it.uri).put("w", it.w).put("h", it.h)) }
+    return org.json.JSONObject().put("items", arr).toString()
+}
+
+private fun photosOf(payload: String): List<JournalPhoto> = runCatching {
+    val arr = org.json.JSONObject(payload).getJSONArray("items")
+    (0 until arr.length()).map { i ->
+        val o = arr.getJSONObject(i)
+        JournalPhoto(o.optLong("id"), o.optString("uri"), o.optInt("w"), o.optInt("h"))
+    }
+}.getOrDefault(emptyList())
+
+/** 保证：以文字块开头和结尾，图片块之间总夹着文字块，相邻文字块合并。 */
+fun normalize(list: List<EditorBlock>): List<EditorBlock> {
+    val out = mutableListOf<EditorBlock>()
+    list.forEach { b ->
+        val last = out.lastOrNull()
+        when {
+            b is EditorBlock.Photos && b.photos.isEmpty() -> Unit
+            b is EditorBlock.Text && last is EditorBlock.Text ->
+                out[out.lastIndex] = last.copy(text = listOf(last.text, b.text).filter { it.isNotBlank() }.joinToString("\n\n"))
+            b is EditorBlock.Photos && (last == null || last is EditorBlock.Photos) -> { out += EditorBlock.Text(); out += b }
+            else -> out += b
+        }
+    }
+    if (out.lastOrNull() !is EditorBlock.Text) out += EditorBlock.Text()
+    return out
+}
 
 class JournalViewModel(private val dao: JournalDao) : ViewModel() {
     val entries = dao.all().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -83,23 +123,47 @@ class JournalViewModel(private val dao: JournalDao) : ViewModel() {
     suspend fun allParagraphs(id: String): List<String> =
         dao.blocks(id).filter { it.type == JournalBlockType.PARAGRAPH }.mapNotNull { paragraphText(it.payloadJson) }
 
-    suspend fun load(id: String): Pair<JournalEntryEntity?, String> {
-        val e = dao.entry(id) ?: return null to ""
-        return e to excerpt(id)
+    suspend fun entry(id: String): JournalEntryEntity? = dao.entry(id)
+
+    /** 编辑器载入：段落合并成文字块，图片块单独成块。 */
+    suspend fun loadBlocks(id: String): List<EditorBlock> {
+        val out = mutableListOf<EditorBlock>()
+        dao.blocks(id).forEach { b ->
+            when (b.type) {
+                JournalBlockType.PARAGRAPH -> {
+                    val t = paragraphText(b.payloadJson).orEmpty()
+                    val last = out.lastOrNull()
+                    if (last is EditorBlock.Text) out[out.lastIndex] = last.copy(text = last.text + "\n\n" + t)
+                    else out += EditorBlock.Text(text = t)
+                }
+                JournalBlockType.IMAGES -> out += EditorBlock.Photos(photos = photosOf(b.payloadJson))
+            }
+        }
+        return normalize(out)
     }
 
-    fun save(id: String, createdAt: Long?, title: String, body: String) {
-        if (title.isBlank() && body.isBlank()) return
+    /** 列表封面：第一组图片的第一张。 */
+    suspend fun cover(id: String): JournalPhoto? =
+        dao.blocks(id).firstOrNull { it.type == JournalBlockType.IMAGES }?.let { photosOf(it.payloadJson).firstOrNull() }
+
+    fun save(id: String, createdAt: Long?, title: String, blocks: List<EditorBlock>, then: () -> Unit = {}) {
+        val hasContent = title.isNotBlank() || blocks.any { (it is EditorBlock.Text && it.text.isNotBlank()) || (it is EditorBlock.Photos && it.photos.isNotEmpty()) }
+        if (!hasContent) { then(); return }
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             val entry = JournalEntryEntity(id = id, title = title.trim(), createdAt = createdAt ?: now, updatedAt = now)
-            val blocks = body.split(Regex("\n{2,}")).map { it.trim() }.filter { it.isNotEmpty() }.mapIndexed { i, p ->
-                JournalBlockEntity(
-                    id = "$id-$i", entryId = id, position = i, type = JournalBlockType.PARAGRAPH,
-                    payloadJson = paragraphJson(p)
-                )
+            val rows = mutableListOf<JournalBlockEntity>()
+            blocks.forEach { b ->
+                when (b) {
+                    is EditorBlock.Text -> b.text.split(Regex("\n{2,}")).map { it.trim() }.filter { it.isNotEmpty() }.forEach { p ->
+                        rows += JournalBlockEntity(id = "$id-${rows.size}", entryId = id, position = rows.size, type = JournalBlockType.PARAGRAPH, payloadJson = paragraphJson(p))
+                    }
+                    is EditorBlock.Photos -> if (b.photos.isNotEmpty())
+                        rows += JournalBlockEntity(id = "$id-${rows.size}", entryId = id, position = rows.size, type = JournalBlockType.IMAGES, payloadJson = photosJson(b.photos))
+                }
             }
-            dao.save(entry, blocks)
+            dao.save(entry, rows)
+            then()
         }
     }
 
@@ -182,7 +246,16 @@ fun JournalScreen(paddingValues: PaddingValues, vm: JournalViewModel) {
                             )
                         }
                         var excerpt by remember(e.id, e.updatedAt) { mutableStateOf("") }
-                        LaunchedEffect(e.id, e.updatedAt) { excerpt = vm.excerpt(e.id) }
+                        var cover by remember(e.id, e.updatedAt) { mutableStateOf<JournalPhoto?>(null) }
+                        LaunchedEffect(e.id, e.updatedAt) { excerpt = vm.excerpt(e.id); cover = vm.cover(e.id) }
+                        cover?.let { c ->
+                            com.github.panpf.sketch.AsyncImage(
+                                request = com.github.panpf.sketch.request.ComposableImageRequest(c.uri), contentDescription = null,
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                modifier = Modifier.padding(top = 12.dp).fillMaxWidth().aspectRatio(16f / 9f)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                            )
+                        }
                         if (excerpt.isNotEmpty()) {
                             Text(
                                 excerpt, maxLines = 3, style = MaterialTheme.typography.bodyMedium,
@@ -198,70 +271,3 @@ fun JournalScreen(paddingValues: PaddingValues, vm: JournalViewModel) {
     }
 }
 
-@Composable
-fun JournalEditScreen(entryId: String, vm: JournalViewModel) {
-    val eventHandler = LocalEventHandler.current
-    var title by remember { mutableStateOf("") }
-    var body by remember { mutableStateOf("") }
-    var createdAt by remember { mutableStateOf<Long?>(null) }
-    var loaded by remember { mutableStateOf(false) }
-    val bodyFocus = remember { FocusRequester() }
-
-    LaunchedEffect(entryId) {
-        val (e, _) = vm.load(entryId)
-        if (e != null) {
-            title = e.title
-            createdAt = e.createdAt
-            // 读出全部段落，用空行连接
-            body = vm.allText(entryId)
-        }
-        loaded = true
-        if (e == null) runCatching { bodyFocus.requestFocus() }
-    }
-
-    fun saveAndExit() {
-        vm.save(entryId, createdAt, title, body)
-        eventHandler.navigateUp()
-    }
-    BackHandler { saveAndExit() }
-
-    val now = remember { createdAt ?: System.currentTimeMillis() }
-    Column(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding().imePadding()
-    ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("完成", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, letterSpacing = 0.15.em,
-                modifier = Modifier.clickable { saveAndExit() }.padding(10.dp))
-            Spacer(Modifier.weight(1f))
-            Text(
-                Instant.ofEpochMilli(createdAt ?: now).atZone(zone).toLocalDate().let { "${it.year} · ${it.monthValue} 月 ${it.dayOfMonth} 日" },
-                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 10.dp)
-            )
-        }
-        Column(Modifier.padding(horizontal = 26.dp)) {
-            BasicTextField(
-                value = title, onValueChange = { title = it }, singleLine = true,
-                textStyle = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 26.sp, color = MaterialTheme.colorScheme.onBackground),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                decorationBox = { inner ->
-                    Box { if (title.isEmpty()) Text("标题", fontFamily = FontFamily.Serif, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline); inner() }
-                },
-                modifier = Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 16.dp)
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 0.5.dp)
-            BasicTextField(
-                value = body, onValueChange = { body = it },
-                textStyle = TextStyle(fontSize = 17.sp, lineHeight = 30.sp, color = MaterialTheme.colorScheme.onBackground),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                decorationBox = { inner ->
-                    Box { if (body.isEmpty() && loaded) Text("写点什么……", fontSize = 17.sp, lineHeight = 30.sp, color = MaterialTheme.colorScheme.outline); inner() }
-                },
-                modifier = Modifier.fillMaxWidth().padding(top = 18.dp).focusRequester(bodyFocus)
-            )
-        }
-    }
-}
-
-/** 编辑器需要的全文：所有段落用空行连接。 */
-suspend fun JournalViewModel.allText(id: String): String = allParagraphs(id).joinToString("\n\n")

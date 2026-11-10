@@ -8,29 +8,14 @@ package com.dot.gallery.ui.theme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import org.jetbrains.compose.resources.Font
-import com.dot.gallery.core.ui.generated.resources.Res
-import com.dot.gallery.core.ui.generated.resources.google_sans_bold
-import com.dot.gallery.core.ui.generated.resources.google_sans_bold_italic
-import com.dot.gallery.core.ui.generated.resources.google_sans_italic
-import com.dot.gallery.core.ui.generated.resources.google_sans_medium
-import com.dot.gallery.core.ui.generated.resources.google_sans_medium_italic
-import com.dot.gallery.core.ui.generated.resources.google_sans_regular
-import com.dot.gallery.core.ui.generated.resources.google_sans_semibold
 
+/*
+ * 手写相册：不再内置 Google Sans（约 14 MB × 2 份），沿用系统字体——
+ * 用户在系统里换的字体（比如手写体）会自然贯穿整个应用。
+ */
 val GoogleSansFontFamily: FontFamily
     @Composable
-    get() = FontFamily(
-        Font(Res.font.google_sans_regular, FontWeight.Normal),
-        Font(Res.font.google_sans_italic, FontWeight.Normal, FontStyle.Italic),
-        Font(Res.font.google_sans_medium, FontWeight.Medium),
-        Font(Res.font.google_sans_medium_italic, FontWeight.Medium, FontStyle.Italic),
-        Font(Res.font.google_sans_semibold, FontWeight.SemiBold),
-        Font(Res.font.google_sans_bold, FontWeight.Bold),
-        Font(Res.font.google_sans_bold_italic, FontWeight.Bold, FontStyle.Italic),
-    )
+    get() = FontFamily.Default
 
 private val defaultTypography = Typography()
 

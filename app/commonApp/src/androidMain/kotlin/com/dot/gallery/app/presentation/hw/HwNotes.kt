@@ -43,6 +43,7 @@ class HwNotesRepository(private val db: InternalDatabase) {
 
     fun noteFlow(mediaId: Long) = notes.noteForMedia(mediaId)
     fun mediaIdsWithNotes() = notes.mediaIdsWithNotes()
+    fun recentNotedMediaIds(limit: Int) = notes.recentNotedMediaIds(limit)
     suspend fun searchMediaIds(q: String) = notes.searchMediaIds(q)
 
     private suspend fun identityFor(m: UriMedia): Long {

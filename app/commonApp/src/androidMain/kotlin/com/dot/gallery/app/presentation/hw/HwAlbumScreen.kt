@@ -8,6 +8,8 @@ package com.dot.gallery.app.presentation.hw
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -58,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.dot.gallery.domain.model.MediaState
+import com.dot.gallery.core.toggleNavigationBar
 import com.dot.gallery.domain.model.UriMedia
 import com.dot.gallery.domain.model.definedTimestamp
 import com.dot.gallery.domain.util.getUri
@@ -86,6 +89,7 @@ private sealed interface Cell {
     data class Photo(val media: UriMedia) : Cell
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<UriMedia>>) {
     val viewer = LocalHwViewer.current
@@ -96,6 +100,14 @@ fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<Uri
     val noteSet = remember(withNotes) { withNotes.toHashSet() }
 
     var cols by remember { mutableIntStateOf(4) }
+    val selected = remember { androidx.compose.runtime.mutableStateListOf<Long>() }
+    val selecting = selected.isNotEmpty()
+    val selectedSet = remember(selected.toList()) { selected.toHashSet() }
+    val eventHandler = com.dot.gallery.core.LocalEventHandler.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    fun toggle(id: Long) { if (id in selected) selected.remove(id) else selected.add(id) }
+    LaunchedEffect(selecting) { eventHandler.toggleNavigationBar(!selecting) }
+    androidx.activity.compose.BackHandler(enabled = selecting) { selected.clear() }
     var folders by remember { mutableStateOf(false) }
     var album by remember { mutableStateOf<Pair<Long, String>?>(null) }
     var query by remember { mutableStateOf("") }
@@ -142,12 +154,19 @@ fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<Uri
         all.groupBy { it.albumID }.map { (id, l) -> Triple(id, l.first(), l.size) }.sortedByDescending { it.third }
     }
 
+  Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().background(colors.background).statusBarsPadding()) {
         // 标题 + 视图切换
         Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 22.dp), verticalAlignment = Alignment.Bottom) {
-            Text(album?.second ?: "相册", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 28.sp, letterSpacing = 0.06.em)
+            Text(if (selecting) "已选 ${selected.size} 张" else album?.second ?: "相册", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 28.sp, letterSpacing = 0.06.em)
             Spacer(Modifier.weight(1f))
-            if (album != null) {
+            if (selecting) {
+                Text(if (selected.size == shown.size) "全不选" else "全选", color = colors.primary, fontSize = 14.sp, letterSpacing = 0.12.em,
+                    modifier = Modifier.clickable {
+                        if (selected.size == shown.size) selected.clear() else { selected.clear(); selected.addAll(shown.map { it.id }) }
+                    }.padding(8.dp))
+                Text("取消", color = colors.onSurfaceVariant, fontSize = 14.sp, letterSpacing = 0.12.em, modifier = Modifier.clickable { selected.clear() }.padding(8.dp))
+            } else if (album != null) {
                 Text("全部", color = colors.primary, fontSize = 14.sp, letterSpacing = 0.12.em, modifier = Modifier.clickable { album = null }.padding(8.dp))
             } else {
                 listOf(false to "照片", true to "文件夹").forEach { (f, label) ->
@@ -260,15 +279,24 @@ fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<Uri
                         }
                         is Cell.Photo -> item(key = cell.media.id) {
                             val m = cell.media
+                            val isSel = m.id in selectedSet
+                            val shrink by androidx.compose.animation.core.animateFloatAsState(
+                                if (isSel) 0.86f else 1f, androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = 520f), label = "sel"
+                            )
                             Box(
                                 Modifier.animateItem(placementSpec = ItemSpring).aspectRatio(1f).background(colors.surfaceVariant)
                                     .hwThumb(viewer, m)
-                                    .clickable { viewer?.open(shown, m) }
+                                    .combinedClickable(
+                                        onClick = { if (selecting) toggle(m.id) else viewer?.open(shown, m) },
+                                        onLongClick = { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); toggle(m.id) }
+                                    )
                             ) {
                                 AsyncImage(
                                     request = ComposableImageRequest(m.getUri().toString()), contentDescription = m.label,
-                                    contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = shrink; scaleY = shrink }
                                 )
+                                if (selecting) SelectMark(isSel, Modifier.align(Alignment.TopEnd).padding(6.dp).size(20.dp))
                                 if (m.isVideo) Text(
                                     m.duration?.toLongOrNull()?.let { "%d:%02d".format(it / 60000, (it / 1000) % 60) } ?: "视频",
                                     color = Color.White, fontSize = 10.sp,
@@ -285,4 +313,11 @@ fun HwAlbumScreen(paddingValues: PaddingValues, mediaState: State<MediaState<Uri
             }
         }
     }
+    if (selecting) HwSelectionBar(
+        picked = shown.filter { it.id in selectedSet },
+        repo = repo,
+        onDone = { selected.clear() },
+        modifier = Modifier.align(Alignment.BottomCenter)
+    )
+  }
 }

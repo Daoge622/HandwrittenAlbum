@@ -31,6 +31,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -216,6 +218,9 @@ fun TodayScreen(
                 }
             }
 
+            // ---------- 附言 ----------
+            item(key = "notes") { NotesSection(media, viewer, open) }
+
             // ---------- 那年今日 ----------
             if (onThisDay.isNotEmpty()) item(key = "onthisday") {
                 Column(Modifier.padding(top = 38.dp)) {
@@ -236,6 +241,9 @@ fun TodayScreen(
                     }
                 }
             }
+
+            // ---------- 随笔 ----------
+            item(key = "journal") { JournalSection() }
 
             item(key = "bottom") { Spacer(Modifier.height(paddingValues.calculateBottomPadding() + 120.dp)) }
         }
@@ -288,5 +296,69 @@ private fun Photo(media: UriMedia, open: (UriMedia) -> Unit, modifier: Modifier)
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
+    }
+}
+
+/** 最近写了附言的照片：照片 + 附言第一句。没有就不显示。 */
+@Composable
+private fun NotesSection(media: List<UriMedia>, viewer: com.dot.gallery.app.presentation.hw.HwViewerState?, open: (UriMedia) -> Unit) {
+    val repo = com.dot.gallery.app.presentation.hw.rememberNotesRepository()
+    val ids by remember { repo.recentNotedMediaIds(12) }.collectAsState(initial = emptyList())
+    val byId = remember(media) { media.associateBy { it.id } }
+    val noted = remember(ids, byId) { ids.mapNotNull { byId[it] } }
+    if (noted.isEmpty()) return
+    Column(Modifier.padding(top = 38.dp)) {
+        Box(Modifier.padding(horizontal = 24.dp)) { SectionHead(title = "附言", trailing = "${noted.size} 张") }
+        Spacer(Modifier.height(18.dp))
+        LazyRow(contentPadding = PaddingValues(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            items(noted, key = { it.id }) { m ->
+                val note by remember(m.id) { repo.noteFlow(m.id) }.collectAsState(initial = null)
+                Column(Modifier.width(210.dp)) {
+                    Photo(m, { if (viewer != null) viewer.open(noted, it) else open(it) }, Modifier.fillMaxWidth().aspectRatio(4f / 3f))
+                    Text(
+                        note?.text?.trim()?.lineSequence()?.firstOrNull().orEmpty(),
+                        fontFamily = FontFamily.Serif, fontSize = 15.sp, lineHeight = 22.sp, maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 10.dp)
+                    )
+                    val d = m.localDate()
+                    Text("${d.year}.${d.monthValue}.${d.dayOfMonth}", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+                }
+            }
+        }
+    }
+}
+
+/** 最近两篇随笔：标题 + 摘要。没有就不显示。 */
+@Composable
+private fun JournalSection() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val eventHandler = LocalEventHandler.current
+    val dao = remember { (context.applicationContext as com.dot.gallery.injection.ComponentOwner).component.database.getJournalDao() }
+    val entries by remember { dao.all() }.collectAsState(initial = emptyList())
+    if (entries.isEmpty()) return
+    Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 38.dp)) {
+        SectionHead(title = "随笔", trailing = "共 ${entries.size} 篇")
+        entries.take(2).forEach { e ->
+            var excerpt by remember(e.id, e.updatedAt) { androidx.compose.runtime.mutableStateOf("") }
+            androidx.compose.runtime.LaunchedEffect(e.id, e.updatedAt) {
+                excerpt = dao.blocks(e.id).firstOrNull { it.type == com.dot.gallery.data.entity.JournalBlockType.PARAGRAPH }
+                    ?.let { runCatching { org.json.JSONObject(it.payloadJson).optString("text") }.getOrNull() }.orEmpty()
+            }
+            Column(Modifier.fillMaxWidth().clickable { eventHandler.navigate(Screen.JournalEditScreen.id(e.id)) }.padding(vertical = 18.dp)) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(e.title.ifBlank { "无题" }, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.weight(1f))
+                    val d = Instant.ofEpochMilli(e.createdAt).atZone(zone).toLocalDate()
+                    Text("${d.monthValue}.${"%02d".format(d.dayOfMonth)}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (excerpt.isNotEmpty()) Text(
+                    excerpt, maxLines = 2, style = MaterialTheme.typography.bodyMedium,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 0.5.dp)
+        }
     }
 }
