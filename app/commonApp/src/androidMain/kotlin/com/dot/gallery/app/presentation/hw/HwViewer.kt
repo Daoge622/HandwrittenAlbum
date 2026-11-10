@@ -55,6 +55,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
@@ -85,6 +86,7 @@ import com.github.panpf.sketch.request.ComposableImageRequest
 import com.github.panpf.zoomimage.SketchZoomAsyncImage
 import com.github.panpf.zoomimage.rememberSketchZoomState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -415,6 +417,7 @@ private fun HwViewerOverlay(state: HwViewerState) {
                     }
                 }
             }
+            val paperColor = MaterialTheme.colorScheme.background
             Box {
                 ViewerAction("更多") { moreOpen = true }
                 androidx.compose.material3.DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
@@ -426,6 +429,14 @@ private fun HwViewerOverlay(state: HwViewerState) {
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
                         context.startActivity(Intent.createChooser(i, null))
+                    })
+                    if (!m.isVideo && m.id in withNotes) androidx.compose.material3.DropdownMenuItem(text = { Text("分享附言卡") }, onClick = {
+                        moreOpen = false
+                        val dark = paperColor.luminance() < 0.4f
+                        scope.launch {
+                            val n = notesRepo.noteFlow(m.id).first()
+                            if (n != null) HwShareCard.share(context, m, n.text, parseFields(n.fieldsJson), dark)
+                        }
                     })
                     if (!m.isVideo) androidx.compose.material3.DropdownMenuItem(text = { Text("设为壁纸 / 联系人头像") }, onClick = {
                         moreOpen = false

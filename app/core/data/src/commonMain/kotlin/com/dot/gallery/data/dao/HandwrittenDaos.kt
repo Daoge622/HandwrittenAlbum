@@ -166,6 +166,10 @@ interface PhotoNoteDao {
     @Query("UPDATE photo_note SET writtenToFile = 1, writtenAt = :at WHERE id = :id")
     suspend fun markWritten(id: String, at: Long)
 
+    /** 标签变了：这张照片的附言需要重新写入。 */
+    @Query("UPDATE photo_note SET writtenToFile = 0 WHERE identityId = :identityId")
+    suspend fun markUnwritten(identityId: Long)
+
     /** 最近写的光注（首页“今日”用）。 */
     @Query("SELECT * FROM photo_note ORDER BY updatedAt DESC LIMIT :limit")
     fun recent(limit: Int): Flow<List<PhotoNoteEntity>>

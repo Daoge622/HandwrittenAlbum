@@ -14,8 +14,6 @@ import com.dot.gallery.domain.model.UriMedia
 import com.dot.gallery.domain.util.getUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.util.UUID
 
@@ -28,14 +26,22 @@ import java.util.UUID
 
 data class NoteField(val key: String, val value: String)
 
-fun List<NoteField>.toJson(): String = JSONArray().also { a ->
-    forEach { a.put(JSONObject().put("k", it.key).put("v", it.value)) }
-}.toString()
+// 用 kotlinx.serialization 的 Json 树（不依赖 Android 的 org.json，电脑上也能跑单元测试）
+fun List<NoteField>.toJson(): String = kotlinx.serialization.json.JsonArray(map {
+    kotlinx.serialization.json.JsonObject(mapOf("k" to kotlinx.serialization.json.JsonPrimitive(it.key), "v" to kotlinx.serialization.json.JsonPrimitive(it.value)))
+}).toString()
 
 fun parseFields(json: String?): List<NoteField> = runCatching {
-    val a = JSONArray(json ?: "[]")
-    List(a.length()) { i -> a.getJSONObject(i).let { NoteField(it.optString("k"), it.optString("v")) } }
+    kotlinx.serialization.json.Json.parseToJsonElement(json ?: "[]").let { it as kotlinx.serialization.json.JsonArray }.map { e ->
+        val o = e as kotlinx.serialization.json.JsonObject
+        NoteField((o["k"] as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty(), (o["v"] as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty())
+    }
 }.getOrDefault(emptyList())
+
+internal fun stringsToJson(list: List<String>): String = kotlinx.serialization.json.JsonArray(list.map { kotlinx.serialization.json.JsonPrimitive(it) }).toString()
+internal fun jsonToStrings(json: String): List<String>? = runCatching {
+    (kotlinx.serialization.json.Json.parseToJsonElement(json) as kotlinx.serialization.json.JsonArray).map { (it as kotlinx.serialization.json.JsonPrimitive).content }
+}.getOrNull()
 
 class HwNotesRepository(private val db: InternalDatabase) {
     private val tags = db.getTagDao()
@@ -104,12 +110,15 @@ class HwNotesRepository(private val db: InternalDatabase) {
             )
             tags.tagByName(name) ?: return
         }
-        tags.addTags(listOf(com.dot.gallery.data.entity.MediaTagEntity(identityFor(m), tag.id, System.currentTimeMillis())))
+        val identity = identityFor(m)
+        tags.addTags(listOf(com.dot.gallery.data.entity.MediaTagEntity(identity, tag.id, System.currentTimeMillis())))
+        notes.markUnwritten(identity)
     }
 
     suspend fun removeTag(m: UriMedia, tagId: Long) {
         val identity = tags.identityByMediaId(m.id) ?: return
         tags.removeTag(tagId, listOf(identity.id))
+        notes.markUnwritten(identity.id)
     }
 }
 
@@ -130,7 +139,13 @@ object HwXmpWriter {
     private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
     /** 我们要写的属性（dc:description 是通用字段，hw:* 是手写相册自己的命名空间）。 */
-    private fun ourProps(note: PhotoNoteEntity, fields: List<NoteField>): String = buildString {
+    private fun ourProps(note: PhotoNoteEntity, fields: List<NoteField>, subjects: List<String>, ours: List<String>): String = buildString {
+        if (subjects.isNotEmpty()) {
+            append("<dc:subject><rdf:Bag>")
+            subjects.forEach { append("<rdf:li>").append(esc(it)).append("</rdf:li>") }
+            append("</rdf:Bag></dc:subject>")
+        }
+        if (ours.isNotEmpty()) append("<hw:tags>").append(esc(stringsToJson(ours))).append("</hw:tags>")
         append("<dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">").append(esc(note.text)).append("</rdf:li></rdf:Alt></dc:description>")
         append("<hw:uuid>").append(note.id).append("</hw:uuid>")
         append("<hw:note>").append(esc(note.text)).append("</hw:note>")
@@ -139,8 +154,25 @@ object HwXmpWriter {
     }
 
     /** 合并进已有 XMP：先去掉旧的 dc:description 和 hw:*，再插入新的；没有 XMP 就新建一个包。 */
-    fun merge(existing: String?, note: PhotoNoteEntity, fields: List<NoteField>): String {
-        val props = ourProps(note, fields)
+    private fun unesc(s: String) = s.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&")
+
+    /**
+     * 标签写进通用的 dc:subject（关键词，别的相册/电脑软件也认）。
+     * 照片里原有的关键词保留；我们上次写进去、现在已删掉的标签会被移除（上次写的记在 hw:tags）。
+     */
+    fun merge(existing: String?, note: PhotoNoteEntity, fields: List<NoteField>, tags: List<String> = emptyList()): String {
+        val oldSubjects = existing?.let { x ->
+            Regex("<dc:subject>(.*?)</dc:subject>", RegexOption.DOT_MATCHES_ALL).find(x)?.groupValues?.get(1)?.let { body ->
+                Regex("<rdf:li[^>]*>(.*?)</rdf:li>", RegexOption.DOT_MATCHES_ALL).findAll(body).map { unesc(it.groupValues[1].trim()) }.toList()
+            }
+        }.orEmpty()
+        val oldOurs = existing?.let { x ->
+            Regex("<hw:tags>(.*?)</hw:tags>", RegexOption.DOT_MATCHES_ALL).find(x)?.groupValues?.get(1)?.let { j ->
+                jsonToStrings(unesc(j))
+            }
+        }.orEmpty()
+        val subjects = (oldSubjects.filterNot { it in oldOurs } + tags).filter { it.isNotBlank() }.distinct()
+        val props = ourProps(note, fields, subjects, tags)
         val ns = "xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:hw=\"$NS\""
         if (existing.isNullOrBlank() || !existing.contains("rdf:Description")) {
             return "<?xpacket begin=\"﻿\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>" +
@@ -149,6 +181,7 @@ object HwXmpWriter {
         }
         var x = existing
             .replace(Regex("<dc:description>.*?</dc:description>", RegexOption.DOT_MATCHES_ALL), "")
+            .replace(Regex("<dc:subject>.*?</dc:subject>", RegexOption.DOT_MATCHES_ALL), "")
             .replace(Regex("<hw:(\\w+)>.*?</hw:\\1>", RegexOption.DOT_MATCHES_ALL), "")
         // 第一个 rdf:Description：补命名空间；自闭合的改成成对标签，再把属性放进去
         val open = Regex("<rdf:Description\\b([^>]*?)(/?)>").find(x) ?: return x
@@ -161,7 +194,7 @@ object HwXmpWriter {
         return x
     }
 
-    suspend fun write(context: Context, m: UriMedia, note: PhotoNoteEntity): WriteResult = withContext(Dispatchers.IO) {
+    suspend fun write(context: Context, m: UriMedia, note: PhotoNoteEntity, tags: List<String> = emptyList()): WriteResult = withContext(Dispatchers.IO) {
         if (!supports(m.mimeType)) return@withContext WriteResult.Unsupported
         val uri = m.getUri()
         val cr = context.contentResolver
@@ -173,7 +206,7 @@ object HwXmpWriter {
         dir.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 7L * 24 * 3600 * 1000 }?.forEach { it.delete() }
         val backup = File(dir, "${m.id}_${System.currentTimeMillis()}.bak").apply { writeBytes(original) }
         // 2. 合并 XMP，生成新文件内容（只替换 XMP 段，其余字节不动）
-        val xmp = merge(JpegXmp.read(original), note, fields)
+        val xmp = merge(JpegXmp.read(original), note, fields, tags)
         val updated = JpegXmp.write(original, xmp)
             ?: return@withContext WriteResult.Failed("这张照片的结构无法安全写入，未做任何修改")
         // 3. 写回

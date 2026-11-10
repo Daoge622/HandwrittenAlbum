@@ -62,6 +62,7 @@ import com.dot.gallery.injection.ComponentOwner
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -153,7 +154,7 @@ fun HwNoteCard(media: UriMedia, modifier: Modifier = Modifier) {
         writing = true; message = null
         scope.launch {
             repo.save(media, note, text, fields.toList())
-            when (val r = HwXmpWriter.write(context, media, current.copy(text = text, fieldsJson = fields.toList().toJson()))) {
+            when (val r = HwXmpWriter.write(context, media, current.copy(text = text, fieldsJson = fields.toList().toJson()), repo.tagsOf(media.id).first().map { it.name })) {
                 WriteResult.Ok -> { repo.markWritten(current.id); message = null }
                 WriteResult.Unsupported -> message = "这种格式暂不支持写入照片，附言已保存在手写相册"
                 is WriteResult.Failed -> message = r.reason
@@ -291,7 +292,7 @@ fun HwNoteCard(media: UriMedia, modifier: Modifier = Modifier) {
                             .clickable(enabled = !writing) {
                                 scope.launch {
                                     repo.save(media, n, text, fields.toList())
-                                    val r = HwXmpWriter.write(context, media, n.copy(text = text, fieldsJson = fields.toList().toJson()))
+                                    val r = HwXmpWriter.write(context, media, n.copy(text = text, fieldsJson = fields.toList().toJson()), repo.tagsOf(media.id).first().map { it.name })
                                     if (r is WriteResult.NeedsPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                                         val pi = MediaStore.createWriteRequest(context.contentResolver, listOf(media.getUri()))
                                         permissionLauncher.launch(IntentSenderRequest.Builder(pi.intentSender).build())
